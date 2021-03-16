@@ -7,13 +7,9 @@ import java.util.List;
 
 public class Main {
   public static void main(final String[] args) {
-    if (args.length == 0) {
-      new Client();
-    } else {
-      final boolean isServer = List.of(args).contains("--server");
+    final boolean isServer = List.of(args).contains("--server");
 
-      if (isServer) new Server();
-      else new Client();
-    }
+    if (isServer) new Server();
+    else new Client();
   }
 }
