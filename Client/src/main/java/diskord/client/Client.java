@@ -11,15 +11,14 @@ import java.io.IOException;
 
 public class Client extends Application {
 
-    @Override
-    public void start(final Stage stage) throws IOException {
-        Parent root = FXMLLoader.load(getClass().getResource("resources/login.fxml"));
-        stage.setScene(new Scene(root));
-        stage.show();
-    }
+  public static void main(final String[] args) {
+    launch(args);
+  }
 
-    public static void main(final String[] args) {
-        launch();
-    }
-
+  @Override
+  public void start(final Stage stage) throws IOException {
+    Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("login.fxml"));
+    stage.setScene(new Scene(root));
+    stage.show();
+  }
 }

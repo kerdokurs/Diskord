@@ -1,5 +1,4 @@
-
-plugins{
+plugins {
     id 'java'
     id 'maven'
     id 'application'
@@ -7,26 +6,28 @@ plugins{
 }
 javafx {
     version = "15.0.1"
-    modules = [ 'javafx.controls', 'javafx.fxml']
+    modules = ['javafx.controls', 'javafx.fxml']
 }
-
 
 sourceSets {
     main {
+        java {
+            srcDir 'src/main/java'
+        }
         resources {
-            srcDirs = ["src/main/resources"]
-            includes = ["*.fxml"]
+            srcDirs = ['src/main/java', 'src/main/resources']
         }
     }
+
+    main.output.resourcesDir = main.java.outputDir
 }
+
+application.mainClassName = 'diskord.client.Client'
+
 group = 'org.example'
 version = '1.0-SNAPSHOT'
 
 description = "tesgribdion"
-
-sourceCompatibility = 10
-targetCompatibility = 10
-
 
 repositories {
     mavenCentral()
@@ -34,7 +35,4 @@ repositories {
 
 dependencies {
     compile 'org.projectlombok:lombok:1.18.18'
-    compile 'org.openjfx:javafx-controls:15.0.1'
-    compile 'org.openjfx:javafx-fxml:16'
-
 }
