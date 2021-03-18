@@ -1,0 +1,33 @@
+plugins {
+    id 'java'
+    id 'maven'
+}
+
+group = 'org.example'
+version = '1.0-SNAPSHOT'
+
+description = """"""
+
+sourceCompatibility = 9
+targetCompatibility = 9
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'diskord.server.Server'
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'org.projectlombok:lombok:1.18.18'
+    compile 'org.hibernate:hibernate-core:5.4.25.Final'
+    compile 'org.postgresql:postgresql:42.2.15'
+    compile 'commons-codec:commons-codec:1.15'
+    compile 'javax.validation:validation-api:2.0.1.Final'
+    compile 'org.hibernate.validator:hibernate-validator:7.0.1.Final'
+    compile 'io.jsonwebtoken:jjwt-api:0.11.2'
+    runtime 'io.jsonwebtoken:jjwt-impl:0.11.2', 'io.jsonwebtoken:jjwt-jackson:0.11.2'
+}
