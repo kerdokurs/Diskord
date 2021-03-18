@@ -10,6 +10,7 @@ import javax.persistence.Persistence;
 
 public class Server {
   public Server() {
+    System.out.println(getClass().getResource(""));
     final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
 
     final UserRepository userRepository = new UserRepository(factory);
