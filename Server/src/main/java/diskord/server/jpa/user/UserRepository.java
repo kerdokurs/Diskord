@@ -18,17 +18,23 @@ public class UserRepository implements Repository<User, UUID> {
    *
    * @param id kasutaja id
    * @return kasutaja
-   * @throws NoResultException kui kasutajat ei leidu, tõstetakse erind TODO: Äkki on mõttekam tagastada null?
    */
   @Override
-  public User findOne(final UUID id) throws NoResultException {
+  public User findOne(final UUID id) {
     final EntityManager em = factory.createEntityManager();
-    final String query = "SELECT u FROM User u WHERE u.id = :uid";
+    final User user = em.find(User.class, id);
+    em.close();
+
+    return user;
+  }
+
+  public User findOne(final String username) {
+    final EntityManager em = factory.createEntityManager();
+    final String query = "SELECT u FROM User u WHERE u.username = :username";
     final TypedQuery<User> tq = em.createQuery(query, User.class);
-    tq.setParameter("uid", id);
+    tq.setParameter("username", username);
 
     User user;
-
     try {
       user = tq.getSingleResult();
     } finally {
@@ -42,7 +48,6 @@ public class UserRepository implements Repository<User, UUID> {
    * Tagastab kõik kasutajad andmebaasist.
    *
    * @return kasutajad
-   * @throws NoResultException kui kasutajaid ei leitud, tõstetakse erind TODO: Äkki lihtsalt tagastada tühi list?
    */
   @Override
   public List<User> findAll() throws NoResultException {
@@ -66,7 +71,7 @@ public class UserRepository implements Repository<User, UUID> {
    * Kirjutab uue kasutaja andmebaasi
    *
    * @param user kasutaja
-   * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code>, kui ebaõnnestus TODO: Äkki on parem tõsta ebaõnnestumisel erind?
+   * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code>, kui ebaõnnestus
    */
   @Override
   public boolean save(final User user) {
@@ -84,7 +89,6 @@ public class UserRepository implements Repository<User, UUID> {
       et.commit();
     } catch (final Exception e) {
       // TODO: Pane siia täpsem Exception
-      // TODO: Äkki üldse saata see erind edasi?
       if (et != null) et.rollback();
 
       return false;

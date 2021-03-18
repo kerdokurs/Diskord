@@ -8,6 +8,8 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 import java.util.Date;
 import java.util.UUID;
 
@@ -34,10 +36,15 @@ public class User {
       name = "username",
       unique = true
   )
+  @Size(
+      min=5,
+      message = "kasutajanimi peab olema vähemalt 5-tähemärgi pikkune"
+  )
   private String username;
 
   @Getter
   @Setter
+  @NotNull
   private String password;
 
   @Getter

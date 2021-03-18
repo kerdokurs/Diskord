@@ -1,31 +1,35 @@
 package diskord.server;
 
-import diskord.server.jpa.user.User;
+import diskord.server.controllers.LoginController;
+import diskord.server.crypto.JWT;
 import diskord.server.jpa.user.UserRepository;
+import javassist.NotFoundException;
 
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
-import java.util.UUID;
 
 public class Server {
-  private EntityManagerFactory factory;
+  public Server() {
+    final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
 
-  public Server() throws Exception {
-    // FIXME: 17.03.2021 No persistence provider for EntityManager named DiskordServer.database not found.
-    factory = Persistence.createEntityManagerFactory("DiskordServer.database");
-
-    final Repository<User, UUID> userRepository = new UserRepository(factory);
+    final UserRepository userRepository = new UserRepository(factory);
     System.out.println(userRepository.findAll());
 
-    final User user = new User("kerdo", "testing");
-    System.out.println(user.getPassword());
-    userRepository.save(user);
-    System.out.println(userRepository.findAll());
+    final LoginController loginController = new LoginController(userRepository);
+
+    try {
+      final String jws = loginController.handleLogin("kerdo", "testing");
+      System.out.println(jws);
+
+      System.out.println(JWT.validate(jws));
+    } catch (final NotFoundException e) {
+      System.out.println(e.getMessage());
+    }
 
     factory.close();
   }
 
-  public static void main(final String[] args) throws Exception {
+  public static void main(final String[] args) {
     new Server();
   }
 }
