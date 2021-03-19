@@ -1,6 +1,7 @@
 package diskord.server.jpa;
 
-import javax.persistence.NoResultException;
+import javassist.NotFoundException;
+
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -10,7 +11,7 @@ import java.util.List;
  * vajadused ise.
  *
  * @param <T>  klass
- * @param <ID> klassi id (unikaalne)
+ * @param <ID> klassi id tüüp (unikaalne)
  */
 public interface Repository<T, ID> {
   /**
@@ -26,7 +27,7 @@ public interface Repository<T, ID> {
    *
    * @return kõi kisendid või tühja listi, kui neid pole
    */
-  List<T> findAll() throws NoResultException;
+  List<T> findAll();
 
   /**
    * Salvestab isendi andmebaasi
@@ -35,4 +36,14 @@ public interface Repository<T, ID> {
    * @return <code>true</code>, kui suudeti salvestada, <code>false</code> muul juhul
    */
   boolean save(@NotNull T t);
+
+  /**
+   * Kustutab isendi andmebaasist
+   *
+   * @param id kustutava isendi id
+   * @return <code>true</code>, kui kustutamine õnnestus, <code>false</code> muul juhul
+   * @throws NotFoundException kui kasutajat ei leitud
+   * TODO: Kas boolean tagastustüüpi on sel juhul üldse vaja?
+   */
+  boolean delete(@NotNull ID id) throws NotFoundException;
 }

@@ -1,6 +1,7 @@
 package diskord.server.jpa.user;
 
 import diskord.server.jpa.Repository;
+import javassist.NotFoundException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -102,6 +103,35 @@ public class UserRepository implements Repository<User, UUID> {
       // TODO: Pane siia täpsem Exception
       if (et != null) et.rollback();
 
+      return false;
+    } finally {
+      em.close();
+    }
+
+    return true;
+  }
+
+  /**
+   * Kustutab kasutaja
+   *
+   * @param id kasutaja id
+   * @return <code>true</code>, kui kustutamine õnnestus, <code>false</code> muul juhul
+   * @throws NotFoundException kui kasutajat ei leitud
+   */
+  @Override
+  public boolean delete(@NotNull final UUID id) throws NotFoundException {
+    final EntityManager em = factory.createEntityManager();
+
+    final User user = findOne(id);
+
+    if (user == null) throw new NotFoundException("kasutajat ei leitud");
+
+    try {
+      em.detach(user); // mdea, kas on vaja või üldse töötab nii
+      em.remove(user);
+      em.flush();
+    } catch (final Exception e) {
+      e.printStackTrace();
       return false;
     } finally {
       em.close();

@@ -37,7 +37,7 @@ public class User {
       unique = true
   )
   @Size(
-      min=5,
+      min = 5,
       message = "kasutajanimi peab olema vähemalt 5-tähemärgi pikkune"
   )
   private String username;
@@ -45,7 +45,21 @@ public class User {
   @Getter
   @Setter
   @NotNull
+  @Column(
+      name = "password",
+      nullable = false
+  )
   private String password;
+
+  @Getter
+  @Setter
+  @NotNull
+  @Column(
+      name = "role",
+      nullable = false
+  )
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
   @Getter
   @CreationTimestamp
@@ -76,6 +90,7 @@ public class User {
         "id=" + id +
         ", username='" + username + '\'' +
         ", password='" + password + '\'' +
+        ", role=" + role +
         ", createdAt=" + createdAt +
         ", updatedAt=" + updatedAt +
         '}';
