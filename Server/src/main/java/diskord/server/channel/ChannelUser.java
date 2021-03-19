@@ -23,23 +23,14 @@ public class ChannelUser {
 
   @Getter
   @Setter
-  @Accessors(
-      chain = true
-  )
   private UUID id;
 
   @Getter
   @Setter
-  @Accessors(
-      chain = true
-  )
   private String username;
 
   @Getter
   @Setter
-  @Accessors(
-      chain = true
-  )
   private Role role;
 
   public static ChannelUser createChannelUser(final User user) {

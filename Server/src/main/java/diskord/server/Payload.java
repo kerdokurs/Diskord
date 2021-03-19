@@ -6,9 +6,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.UUID;
 
+// Tegemist on payloadi tüübiga, mis määrab ära, mida tegema peab
 enum PayloadType {
   BINK, // ping, aga meie ikooniga sobivas kirjastiili
+  CHAT,
+  JOIN,
+  LEAVE,
 }
 
 public class Payload implements Serializable {
@@ -18,6 +23,16 @@ public class Payload implements Serializable {
   @Getter
   @Setter
   private PayloadType type;
+
+  // Payloadi id (võiks olla, võib-olla parem hiljem hallata)
+  @Getter
+  @Setter
+  private UUID id;
+
+  // Kasutaja id
+  @Getter
+  @Setter
+  private UUID uid;
 
   public static Payload fromJson(final String json) throws JsonProcessingException {
     return mapper.readValue(json, Payload.class);

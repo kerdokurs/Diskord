@@ -4,7 +4,6 @@ import diskord.server.Payload;
 import diskord.server.jpa.user.User;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,16 +15,10 @@ public class Channel implements Runnable {
 
   @Getter
   @Setter
-  @Accessors(
-      chain = true
-  )
   private UUID id;
 
   @Getter
   @Setter
-  @Accessors(
-      chain = true
-  )
   private String name;
 
   public static Channel createChannel(final String name) {
