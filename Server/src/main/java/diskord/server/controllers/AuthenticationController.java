@@ -10,10 +10,10 @@ import javassist.NotFoundException;
 import javax.validation.constraints.NotNull;
 import java.util.Map;
 
-public class UserController {
+public class AuthenticationController {
   private final UserRepository userRepository;
 
-  public UserController(final UserRepository userRepository) {
+  public AuthenticationController(final UserRepository userRepository) {
     this.userRepository = userRepository;
   }
 
@@ -24,7 +24,7 @@ public class UserController {
    * @param username kasutajanimi
    * @param password parool
    */
-  public void handleRegistration(@NotNull final String username, @NotNull final String password) {
+  public void handleSignUp(@NotNull final String username, @NotNull final String password) {
     final User user = new User(username, password, Role.USER);
 
     // prolly vajab erindite viskamist, kuna hibernate ei viskab ise erindi.
@@ -41,7 +41,7 @@ public class UserController {
    * @throws NotFoundException        visatakse, kui kasutajat ei leidu
    * @throws IllegalArgumentException visatakse, kui parool on vale
    */
-  public String handleLogin(@NotNull final String username, @NotNull final String password) throws NotFoundException, IllegalArgumentException {
+  public String handleSignIn(@NotNull final String username, @NotNull final String password) throws NotFoundException, IllegalArgumentException {
     final User user = userRepository.findOne(username);
 
     if (user == null) throw new NotFoundException("kasutaja ei leitud");
