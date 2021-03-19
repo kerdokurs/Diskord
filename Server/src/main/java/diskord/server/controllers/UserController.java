@@ -2,6 +2,7 @@ package diskord.server.controllers;
 
 import diskord.server.crypto.Hash;
 import diskord.server.crypto.JWT;
+import diskord.server.jpa.user.Role;
 import diskord.server.jpa.user.User;
 import diskord.server.jpa.user.UserRepository;
 import javassist.NotFoundException;
@@ -24,7 +25,7 @@ public class UserController {
    * @param password parool
    */
   public void handleRegistration(@NotNull final String username, @NotNull final String password) {
-    final User user = new User(username, password);
+    final User user = new User(username, password, Role.USER);
 
     // prolly vajab erindite viskamist, kuna hibernate ei viskab ise erindi.
     userRepository.save(user);

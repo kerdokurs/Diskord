@@ -76,9 +76,10 @@ public class User {
   )
   private Date updatedAt;
 
-  public User(final String username, final String password) {
+  public User(final String username, final String password, final Role role) {
     this.username = username;
     this.password = Hash.hash(password);
+    this.role = role;
   }
 
   public User() {
