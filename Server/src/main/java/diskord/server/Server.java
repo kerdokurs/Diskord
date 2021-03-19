@@ -1,10 +1,16 @@
 package diskord.server;
 
+import diskord.server.jpa.user.UserRepository;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
+import javax.persistence.*;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.metamodel.Metamodel;
+import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 public class Server {

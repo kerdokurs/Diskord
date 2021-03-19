@@ -1,8 +1,12 @@
 package diskord.server.jpa.user;
 
-import diskord.server.Repository;
+import diskord.server.jpa.Repository;
 
-import javax.persistence.*;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.TypedQuery;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,7 +24,7 @@ public class UserRepository implements Repository<User, UUID> {
    * @return otsitav kasutaja
    */
   @Override
-  public User findOne(final UUID id) {
+  public User findOne(@NotNull final UUID id) {
     final EntityManager em = factory.createEntityManager();
     final User user = em.find(User.class, id);
     em.close();
@@ -34,7 +38,7 @@ public class UserRepository implements Repository<User, UUID> {
    * @param username kasutaja kasutajanimi
    * @return otsitav kasutaja
    */
-  public User findOne(final String username) {
+  public User findOne(@NotNull final String username) {
     final EntityManager em = factory.createEntityManager();
     final String query = "SELECT u FROM User u WHERE u.username = :username";
     final TypedQuery<User> tq = em.createQuery(query, User.class);
@@ -81,7 +85,7 @@ public class UserRepository implements Repository<User, UUID> {
    * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code> muul juhul
    */
   @Override
-  public boolean save(final User user) {
+  public boolean save(@NotNull final User user) {
     final EntityManager em = factory.createEntityManager();
     EntityTransaction et = null;
 

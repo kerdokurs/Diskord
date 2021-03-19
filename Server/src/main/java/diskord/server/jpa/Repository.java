@@ -1,6 +1,7 @@
-package diskord.server;
+package diskord.server.jpa;
 
 import javax.persistence.NoResultException;
+import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**
@@ -18,7 +19,7 @@ public interface Repository<T, ID> {
    * @param id otsitava isendi id
    * @return tagastab isendi või <code>null</code>, kui seda ei leidu
    */
-  T findOne(ID id);
+  T findOne(@NotNull final ID id);
 
   /**
    * Leiab kõik isendid
@@ -33,5 +34,5 @@ public interface Repository<T, ID> {
    * @param t salvestatav isend
    * @return <code>true</code>, kui suudeti salvestada, <code>false</code> muul juhul
    */
-  boolean save(T t);
+  boolean save(@NotNull T t);
 }
