@@ -14,10 +14,10 @@ public class UserRepository implements Repository<User, UUID> {
   }
 
   /**
-   * Tagastab andmebaasist kasutaja id-ga id
+   * Tagastab andmebaasist otsitava kasutaja
    *
-   * @param id kasutaja id
-   * @return kasutaja
+   * @param id otsitava kasutaja id
+   * @return otsitav kasutaja
    */
   @Override
   public User findOne(final UUID id) {
@@ -28,6 +28,12 @@ public class UserRepository implements Repository<User, UUID> {
     return user;
   }
 
+  /**
+   * Tagastab otsitava kasutaja
+   *
+   * @param username kasutaja kasutajanimi
+   * @return otsitav kasutaja
+   */
   public User findOne(final String username) {
     final EntityManager em = factory.createEntityManager();
     final String query = "SELECT u FROM User u WHERE u.username = :username";
@@ -44,13 +50,14 @@ public class UserRepository implements Repository<User, UUID> {
     return user;
   }
 
+
   /**
-   * Tagastab kõik kasutajad andmebaasist.
+   * Tagastab kõik kasutajad
    *
-   * @return kasutajad
+   * @return kõik kasutajad
    */
   @Override
-  public List<User> findAll() throws NoResultException {
+  public List<User> findAll() {
     final EntityManager em = factory.createEntityManager();
     final String query = "SELECT u FROM User u WHERE u.id IS NOT NULL";
 
@@ -68,10 +75,10 @@ public class UserRepository implements Repository<User, UUID> {
   }
 
   /**
-   * Kirjutab uue kasutaja andmebaasi
+   * Salvestab kasutaja andmebaasi
    *
-   * @param user kasutaja
-   * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code>, kui ebaõnnestus
+   * @param user salvestatav kasutaja
+   * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code> muul juhul
    */
   @Override
   public boolean save(final User user) {

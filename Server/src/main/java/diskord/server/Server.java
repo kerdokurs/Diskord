@@ -1,59 +1,47 @@
 package diskord.server;
 
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 
-import java.net.InetSocketAddress;
+import java.util.logging.Logger;
 
 public class Server {
-  public Server() {
-    final EventLoopGroup group = new NioEventLoopGroup();
+  private final int port;
 
-    try {
-      final ServerBootstrap bootstrap = new ServerBootstrap();
-      bootstrap.group(group);
-      bootstrap.channel(NioServerSocketChannel.class);
-      bootstrap.localAddress(new InetSocketAddress("localhost", 8192));
+  // Logimiseks System.out.println()-i ei kasuta!
+  private final Logger logger = Logger.getLogger("server");
 
-      bootstrap.childHandler(new ChannelInitializer<SocketChannel>() {
-        @Override
-        protected void initChannel(final SocketChannel ch) {
-          ch.pipeline().addLast(new ClientHandler());
-        }
-      });
-
-      final ChannelFuture cfuture = bootstrap.bind().sync();
-      cfuture.channel().closeFuture().sync();
-    } catch (final Exception e) {
-      e.printStackTrace();
-    } finally {
-      group.shutdownGracefully();
-    }
-//    final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
-//
-//    final UserRepository userRepository = new UserRepository(factory);
-//    System.out.println(userRepository.findAll());
-//
-//    final LoginController loginController = new LoginController(userRepository);
-//
-//    try {
-//      final String jws = loginController.handleLogin("kerdo", "testing");
-//      System.out.println(jws);
-//
-//      System.out.println(JWT.validate(jws));
-//    } catch (final NotFoundException e) {
-//      System.out.println(e.getMessage());
-//    }
-//
-//    factory.close();
+  public Server(final int port) {
+    this.port = port;
   }
 
   public static void main(final String[] args) {
-    new Server();
+    new Server(8192).start();
+  }
+
+  /**
+   * Alustame serveri
+   */
+  public void start() {
+    final EventLoopGroup producer = new NioEventLoopGroup();
+    final EventLoopGroup consumer = new NioEventLoopGroup();
+
+    try {
+      final ServerBootstrap bootstrap = new ServerBootstrap()
+          .group(producer, consumer)
+          .channel(NioServerSocketChannel.class)
+          .childHandler(new ServerAdapterInitializer());
+
+      logger.info("server has started");
+
+      bootstrap.bind(port).sync().channel().closeFuture().sync();
+    } catch (final Exception e) {
+      e.printStackTrace();
+    } finally {
+      producer.shutdownGracefully();
+      consumer.shutdownGracefully();
+    }
   }
 }

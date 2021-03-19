@@ -14,7 +14,7 @@ public class JWT {
    *
    * @param subject kasutaja id
    * @param claims  kasutaja claims
-   * @return jws
+   * @return jws allkirjastatud jwt
    */
   public static String sign(final String subject, final Map<String, Object> claims) {
     return Jwts.builder()

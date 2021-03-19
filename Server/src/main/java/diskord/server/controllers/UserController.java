@@ -16,8 +16,17 @@ public class LoginController {
     this.userRepository = userRepository;
   }
 
+  /**
+   * See meetod handlib kasutaja registreerimise
+   * TODO: Lisa siia ka jwt generatsioon ja edastus (?)
+   *
+   * @param username kasutajanimi
+   * @param password parool
+   */
   public void handleRegistration(final String username, final String password) {
     final User user = new User(username, password);
+
+    // prolly vajab erindite viskamist, kuna hibernate ei viskab ise erindi.
     userRepository.save(user);
   }
 

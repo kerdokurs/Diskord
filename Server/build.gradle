@@ -20,6 +20,10 @@ jar {
     }
 }
 
+tasks.withType(JavaCompile) {
+    options.incremental = true
+}
+
 repositories {
     mavenCentral()
 }

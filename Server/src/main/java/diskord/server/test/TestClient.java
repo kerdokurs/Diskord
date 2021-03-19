@@ -1,51 +1,65 @@
 package diskord.server.test;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import io.netty.util.CharsetUtil;
 
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
 
+/**
+ * See klass on lihtsalt testimiseks, aga kliendi põhimõte jääb arvatavasti üsna samaks.
+ */
 public class TestClient {
   public static void main(final String[] args) throws Exception {
     final EventLoopGroup group = new NioEventLoopGroup();
 
     try {
-      final Bootstrap clientBootstrap = new Bootstrap();
+      final Bootstrap bootstrap = new Bootstrap().group(group)
+          .channel(NioSocketChannel.class)
+          .handler(new ClientInitializer());
 
-      clientBootstrap.group(group);
-      clientBootstrap.channel(NioSocketChannel.class);
-      clientBootstrap.remoteAddress(new InetSocketAddress("localhost", 8192));
+      final Channel channel = bootstrap.connect(InetAddress.getLocalHost(), 8192).sync().channel();
 
-      clientBootstrap.handler(new ChannelInitializer<>() {
-        @Override
-        protected void initChannel(final Channel ch) {
-          ch.pipeline().addLast(new ClientHandler());
-        }
-      });
-
-      final ChannelFuture channelFuture = clientBootstrap.connect().sync();
-      channelFuture.channel().closeFuture().sync();
+      channel.write("test1\n");
+      channel.write("test2\n");
+      channel.flush();
     } finally {
       group.shutdownGracefully().sync();
     }
   }
 }
 
-class ClientHandler extends SimpleChannelInboundHandler {
+class ClientInitializer extends ChannelInitializer<Channel> {
+  @Override
+  protected void initChannel(final Channel ch) {
+    final ChannelPipeline pipeline = ch.pipeline();
+
+    pipeline.addLast("decoder", new StringDecoder());
+    pipeline.addLast("encoder", new StringEncoder());
+
+    pipeline.addLast("handler", new ClientHandler());
+  }
+}
+
+class ClientHandler extends SimpleChannelInboundHandler<String> {
   @Override
   public void channelActive(final ChannelHandlerContext channelHandlerContext) {
-    channelHandlerContext.writeAndFlush(Unpooled.copiedBuffer("Netty Rocks!", CharsetUtil.UTF_8));
+    channelHandlerContext.writeAndFlush(Unpooled.copiedBuffer("bink", CharsetUtil.UTF_8));
   }
 
   @Override
-  public void channelRead0(final ChannelHandlerContext channelHandlerContext, final Object in) {
-    final ByteBuf buf = (ByteBuf) in;
-    System.out.printf("client received: %s%n", buf.toString(CharsetUtil.UTF_8));
+  public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
+    System.out.println(msg);
+  }
+
+  @Override
+  protected void channelRead0(final ChannelHandlerContext ctx, final String msg) {
+    System.out.printf("client received: %s%n", msg);
   }
 
   @Override
