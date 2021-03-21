@@ -10,7 +10,7 @@ import java.util.UUID;
 
 // Tegemist on payloadi tüübiga, mis määrab ära, mida tegema peab
 enum PayloadType {
-  BINK, // ping, aga meie ikooniga sobivas kirjastiili
+  BINK, // ping, aga meie ikooniga sobivas kirjastiilis.
   CHAT,
   JOIN,
   LEAVE,
@@ -29,10 +29,10 @@ public class Payload implements Serializable {
   @Setter
   private UUID id;
 
-  // Kasutaja id
+  // Allkirjastatud jsonwebtoken, mille abil saame valideerida kasutaja ja tema õigused.
   @Getter
   @Setter
-  private UUID uid;
+  private String jwt;
 
   public static Payload fromJson(final String json) throws JsonProcessingException {
     return mapper.readValue(json, Payload.class);
