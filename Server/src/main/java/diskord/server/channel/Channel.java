@@ -1,6 +1,6 @@
 package diskord.server.channel;
 
-import diskord.server.Payload;
+import diskord.server.payload.Payload;
 import diskord.server.jpa.user.User;
 import lombok.Getter;
 import lombok.Setter;
