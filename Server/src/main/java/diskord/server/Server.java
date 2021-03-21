@@ -2,6 +2,7 @@ package diskord.server;
 
 import diskord.server.channel.Channel;
 import diskord.server.channel.ChannelLoader;
+import diskord.server.cli.CLI;
 import diskord.server.jpa.channel.ChannelRepository;
 import diskord.server.jpa.user.User;
 import diskord.server.jpa.user.UserRepository;
@@ -33,6 +34,10 @@ public class Server {
   private ServerSocketChannel serverSocketChannel;
   private Map<SocketChannel, Queue<Payload>> socketMap = new HashMap<>();
 
+  private boolean running = true;
+
+  private CLI cli;
+
   public Server(final int port) {
     socketAddress = new InetSocketAddress("localhost", port);
 
@@ -49,6 +54,7 @@ public class Server {
   }
 
   public void init() throws IOException {
+    // Setting up selector and server socket channel
     selector = SelectorProvider.provider().openSelector();
 
     serverSocketChannel = ServerSocketChannel.open();
@@ -58,6 +64,10 @@ public class Server {
     serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
     channels = ChannelLoader.loadChannels(channelRepository);
+
+    // Setting up command line interface
+    cli = new CLI(this);
+    new Thread(cli).start();
   }
 
   public void start() throws IOException {
@@ -65,12 +75,13 @@ public class Server {
 
     logger.info("server has started");
 
-    while (true) {
+    while (running) {
+      // This 'running' is stupid in the case where selector.select() is blocking
       selector.select();
 
       final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-      while (keys.hasNext()) {
+      while (running && keys.hasNext()) {
         final SelectionKey key = keys.next();
         keys.remove();
 
@@ -82,10 +93,29 @@ public class Server {
       }
     }
 
+
     // Siin teha serveri pealõim ja socket ning kanal, mis haldavad
     // suhtlust põhiserveriga.
     // Põhiserver (this) majandab huvilistele kanalite info jms
     // saatmisega ning vastuvõtuga (loo mulle kanal, ava kanal vms).
+  }
+
+  // Does not work yet
+  // TODO: Fix.
+  public void stop() {
+    try {
+      logger.info("shutting server down");
+
+      for (SocketChannel socketChannel : socketMap.keySet())
+        socketChannel.close();
+
+      serverSocketChannel.close();
+      selector.close();
+
+      logger.info("server has shut down");
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
   }
 
   private void accept(final SelectionKey key) throws IOException {
