@@ -16,7 +16,7 @@
          </image>
       </ImageView>
       <TextField fx:id="fxTextFieldUsername" layoutX="56.0" layoutY="93.0" minHeight="-Infinity" minWidth="-Infinity" onKeyTyped="#fxEventTextFieldUsernameOnKeyTyped" prefHeight="25.0" prefWidth="188.0" promptText="Username" />
-      <TextField fx:id="fxTextFieldPassword" layoutX="56.0" layoutY="138.0" onKeyTyped="#fxEventTextFieldPasswordOnKeyTyped" prefHeight="25.0" prefWidth="188.0" promptText="Password (min lenght 5)" />
+      <TextField fx:id="fxTextFieldPassword" layoutX="56.0" layoutY="138.0" onKeyTyped="#fxEventTextFieldPasswordOnKeyTyped" prefHeight="25.0" prefWidth="188.0" promptText="Password (min length 5)" />
       <Label fx:id="fxLabelUsernameValid" layoutX="28.0" layoutY="97.0" prefHeight="17.0" prefWidth="21.0" textFill="#00cd00">
          <font>
             <Font name="System Bold" size="12.0" />
