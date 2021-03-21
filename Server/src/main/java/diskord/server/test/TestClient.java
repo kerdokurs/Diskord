@@ -32,7 +32,9 @@ public class TestClient {
 
       client.write(buffer);
 
-      read(client);
+      while(true) {
+        read(client);
+      }
     }
   }
 
