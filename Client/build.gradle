@@ -22,7 +22,7 @@ sourceSets {
     main.output.resourcesDir = main.java.outputDir
 }
 
-application.mainClassName = 'diskord.client.Client'
+application.mainClassName = 'diskord.client.ClientWrapper$Client'
 
 group = 'org.example'
 version = '1.0-SNAPSHOT'
@@ -35,4 +35,6 @@ repositories {
 
 dependencies {
     compile 'org.projectlombok:lombok:1.18.18'
+    compile 'org.openjfx:javafx-controls:15.0.1'
+    compile 'org.openjfx:javafx-fxml:16'
 }

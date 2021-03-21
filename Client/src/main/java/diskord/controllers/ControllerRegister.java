@@ -72,7 +72,7 @@ public class ControllerRegister implements Initializable {
         boolean usernameAvailable = true;
         if(usernameAvailable){
             usernameValid = true;
-            fxLabelUsernameValid.setText("OK");//✔
+            fxLabelUsernameValid.setText("OK");//
             fxLabelUsernameValid.setTextFill(Color.rgb(0,200,0));
         }else{
             usernameValid = false;
@@ -89,7 +89,7 @@ public class ControllerRegister implements Initializable {
         if(fxTextFieldPassword.getLength() == 0 && fxTextFieldPasswordConfirm.getLength() == 0){
             fxLabelPasswordValid.setText("");
         }else if(fxTextFieldPassword.getText().equals(fxTextFieldPasswordConfirm.getText())){
-            fxLabelPasswordValid.setText("OK");// ✔
+            fxLabelPasswordValid.setText("OK");//
             fxLabelPasswordValid.setTextFill(Color.rgb(0,200,0));
             passwordValid = true;
         }else{
@@ -105,7 +105,7 @@ public class ControllerRegister implements Initializable {
      */
     public void fxEventTextFieldPasswordConfirmOnKeyTyped() {
         if(fxTextFieldPasswordConfirm.getText().equals(fxTextFieldPassword.getText()) && fxTextFieldPasswordConfirm.getLength() > 4){
-            fxLabelPasswordValid.setText("OK");//✔
+            fxLabelPasswordValid.setText("OK");//
             fxLabelPasswordValid.setTextFill(Color.rgb(0,200,0));
             passwordValid = true;
         }else{
