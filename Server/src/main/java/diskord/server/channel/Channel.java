@@ -53,12 +53,12 @@ public class Channel implements Runnable {
     // (võiks olla channelist lugemist ajal vms).
   }
 
-  public void broadcast(final String message) {
+  public void broadcast(final Payload payload) {
     // TODO: Siin saata kõikidele kasutajatele sõnum
-    // nt users.forEach(user -> send(user.getId(), message)) vms
+    // nt users.forEach(user -> send(user.getId(), payload)) vms
   }
 
-  public void send(final UUID id, final String message) {
+  public void send(final UUID id, final Payload payload) {
     // TODO: Siin saata ainult ühele kasutajale sõnum
   }
 

@@ -5,8 +5,10 @@ import javassist.NotFoundException;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
+import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.validation.constraints.NotNull;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,45 +20,63 @@ public class UserRepository implements Repository<User, UUID> {
   }
 
   /**
-   * Tagastab andmebaasist otsitava kasutaja
+   * Tagastab andmebaasist otsitava kasutaja<br>
    *
+   * Kui ei leia siis tagastab <i>null</i>-i
    * @param id otsitava kasutaja id
    * @return otsitav kasutaja
    */
   @Override
   public User findOne(@NotNull final UUID id) {
-    final User user = em.find(User.class, id);
-
-    return user;
+    try{
+      return em.find(User.class, id);
+    } catch (IllegalArgumentException e){
+      System.out.println("Can not find the specified user from the database.");
+      e.printStackTrace();
+    }
+    return null;
   }
 
   /**
    * Tagastab otsitava kasutaja
-   *
+   * Kui otsitavat kasutajat ei leidu siis püüab NoResultExceptioni, prindib stack trace ning
+   * tagastab <i>null</i>-i
    * @param username kasutaja kasutajanimi
    * @return otsitav kasutaja
    */
   public User findOne(@NotNull final String username) {
-    final String query = "SELECT u FROM User u WHERE u.username = :username";
-    final TypedQuery<User> tq = em.createQuery(query, User.class);
-    tq.setParameter("username", username);
+    try{
+      final String query = "SELECT u FROM User u WHERE u.username = :username";
+      final TypedQuery<User> tq = em.createQuery(query, User.class);
+      tq.setParameter("username", username);
 
-    return tq.getSingleResult(); // TODO: see asi võib tõsta erindeid, tee midagi
+      return tq.getSingleResult();
+    } catch (NoResultException e){
+      System.out.println("Can not find the specified user!");
+      e.printStackTrace();
+    }
+    return null;
   }
 
 
   /**
    * Tagastab kõik kasutajad
    *
-   * @return kõik kasutajad
+   * @return kõik kasutajad,
    */
   @Override
   public List<User> findAll() {
     final String query = "SELECT u FROM User u WHERE u.id IS NOT NULL";
-
     final TypedQuery<User> tq = em.createQuery(query, User.class);
 
-    return tq.getResultList(); // TODO: see asi võib tõsta erindeid, tee midagi
+    try{
+      return tq.getResultList();
+
+    } catch (Exception e){
+      e.printStackTrace();
+      return new ArrayList<>(); //return an empty ArrayList<User> in case of an error.
+    }
+
   }
 
   /**

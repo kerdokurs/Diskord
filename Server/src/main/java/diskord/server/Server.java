@@ -9,6 +9,8 @@ import diskord.server.jpa.user.UserRepository;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Logger;
@@ -29,6 +31,8 @@ public class Server {
     userRepository = new UserRepository(em);
 
     init();
+
+
   }
 
   public static void main(String[] args) {
@@ -42,6 +46,12 @@ public class Server {
 
   public void start() {
     logger.info("server has started");
+    try{
+      ServerSocket serverSocket = new ServerSocket(0);
+    } catch(IOException e){
+      logger.info("No available port found.");
+      e.printStackTrace();
+    }
     // Siin teha serveri pealõim ja socket ning kanal, mis haldavad
     // suhtlust põhiserveriga.
     // Põhiserver (this) majandab huvilistele kanalite info jms
@@ -61,5 +71,24 @@ public class Server {
   public void startChannel(final UUID id) {
     // TODO: Siin startida antud IDga kanal (kui puudub, ei tee midagi)
     // Iga kanal on oma lõim, mis haldab oma kliente, sõnumeid jms ise.
+  }
+
+  /**
+   * Method for finding a port in a fixed range (if we don't want ServerSocket to choose its own)
+   *
+   * @param portRangeArray - int[]
+   * @return ServerSocket
+   * @throws IOException
+   */
+  public ServerSocket findAndCreateAvailablePort(int[] portRangeArray) throws IOException{
+    for (int port: portRangeArray){//loops through a range of ints
+      try { //tries to create a port in the given index
+        return new ServerSocket(port);
+      } catch (IOException e){ //if port is allocated, continues to the next index in portRangeArray
+        continue;
+      }
+    }
+
+    throw new IOException("No free port found.");
   }
 }
