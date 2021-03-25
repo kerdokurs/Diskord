@@ -48,12 +48,13 @@ public abstract class Server {
 
     logger.info("server has started");
 
-    while (true) {
+    while (running) {
+      // This 'running' is stupid in the case where selector.select() is blocking
       selector.select();
 
       final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-      while (keys.hasNext()) {
+      while (running && keys.hasNext()) {
         final SelectionKey key = keys.next();
         keys.remove();
 
@@ -73,6 +74,24 @@ public abstract class Server {
       logger.info("shutting server down");
 
       for (final SocketChannel socketChannel : socketMap.keySet())
+        socketChannel.close();
+
+      serverSocketChannel.close();
+      selector.close();
+
+      logger.info("server has shut down");
+    } catch (final Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  // Does not work yet
+  // TODO: Fix.
+  public void stop() {
+    try {
+      logger.info("shutting server down");
+
+      for (SocketChannel socketChannel : socketMap.keySet())
         socketChannel.close();
 
       serverSocketChannel.close();
