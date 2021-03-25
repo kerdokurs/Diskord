@@ -1,4 +1,4 @@
-package diskord.server.jpa.user;
+package diskord.server.database.user;
 
 import diskord.server.crypto.Hash;
 import lombok.Getter;

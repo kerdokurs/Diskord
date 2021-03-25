@@ -1,4 +1,4 @@
-package diskord.server.jpa.user;
+package diskord.server.database.user;
 
 public enum Role {
   USER,

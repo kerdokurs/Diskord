@@ -131,3 +131,5 @@ public class UserRepository implements Repository<User, UUID> {
     }
 
     return true;
+  }
+}

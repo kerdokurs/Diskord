@@ -1,4 +1,4 @@
-package diskord.server.jpa;
+package diskord.server.database;
 
 import javassist.NotFoundException;
 
