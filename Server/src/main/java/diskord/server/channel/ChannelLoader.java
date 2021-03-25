@@ -1,6 +1,6 @@
 package diskord.server.channel;
 
-import diskord.server.jpa.channel.ChannelRepository;
+import diskord.server.database.channel.ChannelRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;

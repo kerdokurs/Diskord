@@ -1,6 +1,6 @@
-package diskord.server.jpa.channel;
+package diskord.server.database.channel;
 
-import diskord.server.jpa.Repository;
+import diskord.server.database.Repository;
 import javassist.NotFoundException;
 
 import javax.persistence.EntityManager;
@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class ChannelRepository implements Repository<Channel, UUID> {
+  public static ChannelRepository INSTANCE;
+
   private final EntityManager em;
 
   public ChannelRepository(final EntityManager em) {

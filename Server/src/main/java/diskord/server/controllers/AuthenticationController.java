@@ -2,9 +2,9 @@ package diskord.server.controllers;
 
 import diskord.server.crypto.Hash;
 import diskord.server.crypto.JWT;
-import diskord.server.jpa.user.Role;
-import diskord.server.jpa.user.User;
-import diskord.server.jpa.user.UserRepository;
+import diskord.server.database.user.Role;
+import diskord.server.database.user.User;
+import diskord.server.database.user.UserRepository;
 import javassist.NotFoundException;
 
 import javax.validation.constraints.NotNull;

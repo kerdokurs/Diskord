@@ -1,6 +1,6 @@
-package diskord.server.jpa.user;
+package diskord.server.database.user;
 
-import diskord.server.jpa.Repository;
+import diskord.server.database.Repository;
 import javassist.NotFoundException;
 
 import javax.persistence.EntityManager;
@@ -131,5 +131,3 @@ public class UserRepository implements Repository<User, UUID> {
     }
 
     return true;
-  }
-}

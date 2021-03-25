@@ -1,17 +1,10 @@
 package diskord.server;
 
 import diskord.server.channel.Channel;
-import diskord.server.channel.ChannelLoader;
-import diskord.server.cli.CLI;
-import diskord.server.jpa.channel.ChannelRepository;
-import diskord.server.jpa.user.User;
-import diskord.server.jpa.user.UserRepository;
+import diskord.server.database.DatabaseManager;
+import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
-import diskord.server.payload.PayloadType;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -23,34 +16,20 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 import java.util.logging.Logger;
 
-public class Server {
+public abstract class Server {
   private final Logger logger = Logger.getLogger(getClass().getName());
-  private final ChannelRepository channelRepository;
-  private final UserRepository userRepository;
+  private final DatabaseManager dbManager;
+
+  protected Selector selector;
+  protected ServerSocketChannel serverSocketChannel;
+  protected Map<SocketChannel, Queue<Payload>> socketMap = new HashMap<>();
+
   private InetSocketAddress socketAddress;
-  private List<Channel> channels;
 
-  private Selector selector;
-  private ServerSocketChannel serverSocketChannel;
-  private Map<SocketChannel, Queue<Payload>> socketMap = new HashMap<>();
-
-  private boolean running = true;
-
-  private CLI cli;
-
-  public Server(final int port) {
+  protected Server(final int port) {
     socketAddress = new InetSocketAddress("localhost", port);
 
-    final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
-    final EntityManager em = factory.createEntityManager();
-
-    channelRepository = new ChannelRepository(em);
-    userRepository = new UserRepository(em);
-  }
-
-  public static void main(String[] args) throws IOException {
-    final Server server = new Server(8192);
-    server.start();
+    dbManager = new DatabaseManager();
   }
 
   public void init() throws IOException {
@@ -62,12 +41,6 @@ public class Server {
 
     serverSocketChannel.socket().bind(socketAddress);
     serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
-    channels = ChannelLoader.loadChannels(channelRepository);
-
-    // Setting up command line interface
-    cli = new CLI(this);
-    new Thread(cli).start();
   }
 
   public void start() throws IOException {
@@ -75,13 +48,12 @@ public class Server {
 
     logger.info("server has started");
 
-    while (running) {
-      // This 'running' is stupid in the case where selector.select() is blocking
+    while (true) {
       selector.select();
 
       final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-      while (running && keys.hasNext()) {
+      while (keys.hasNext()) {
         final SelectionKey key = keys.next();
         keys.remove();
 
@@ -92,12 +64,6 @@ public class Server {
         if (key.isWritable()) write(key);
       }
     }
-
-
-    // Siin teha serveri pealõim ja socket ning kanal, mis haldavad
-    // suhtlust põhiserveriga.
-    // Põhiserver (this) majandab huvilistele kanalite info jms
-    // saatmisega ning vastuvõtuga (loo mulle kanal, ava kanal vms).
   }
 
   // Does not work yet
@@ -106,7 +72,7 @@ public class Server {
     try {
       logger.info("shutting server down");
 
-      for (SocketChannel socketChannel : socketMap.keySet())
+      for (final SocketChannel socketChannel : socketMap.keySet())
         socketChannel.close();
 
       serverSocketChannel.close();
@@ -202,8 +168,8 @@ public class Server {
   public void createChannel(final String name, final User owner) {
     // Siin loome suvalise kanali ja salvestame andmebaasi
     final Channel channel = Channel.createChannel(name);
-    channelRepository.save(
-        new diskord.server.jpa.channel.Channel()
+    dbManager.getChannelRepository().save(
+        new diskord.server.database.channel.Channel()
             .setName(name)
             .setOwner(owner)
     );
@@ -214,28 +180,7 @@ public class Server {
     // Iga kanal on oma lõim, mis haldab oma kliente, sõnumeid jms ise.
   }
 
-  private void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
-    final SocketChannel socketChannel = (SocketChannel) key.channel();
-
-    switch (payload.getType()) {
-      case BINK: // Responding with a BONK payload
-        socketMap.get(socketChannel)
-            .add(
-                new Payload()
-                    .setType(PayloadType.BONK)
-                    .setId(UUID.randomUUID())
-            );
-        break;
-      case CHAT:
-        break;
-      case JOIN:
-        break;
-      case LEAVE:
-        break;
-    }
-
-    socketChannel.register(selector, SelectionKey.OP_WRITE);
-  }
+  protected abstract void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException;
 
   /**
    * Method for finding a port in a fixed range (if we don't want ServerSocket to choose its own)

@@ -7,4 +7,8 @@ public enum PayloadType {
   CHAT,
   JOIN,
   LEAVE,
+
+  INFO,
+
+  INVALID,
 }

@@ -1,10 +1,9 @@
 package diskord.server.channel;
 
-import diskord.server.jpa.user.Role;
-import diskord.server.jpa.user.User;
+import diskord.server.database.user.Role;
+import diskord.server.database.user.User;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.experimental.Accessors;
 
 import java.util.ArrayDeque;
 import java.util.Queue;

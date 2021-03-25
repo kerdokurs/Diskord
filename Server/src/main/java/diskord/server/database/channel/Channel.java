@@ -1,6 +1,6 @@
-package diskord.server.jpa.channel;
+package diskord.server.database.channel;
 
-import diskord.server.jpa.user.User;
+import diskord.server.database.user.User;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
