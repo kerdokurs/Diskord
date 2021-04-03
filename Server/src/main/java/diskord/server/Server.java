@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 
 public abstract class Server {
   private final Logger logger = Logger.getLogger(getClass().getName());
-  private final DatabaseManager dbManager;
+  private final DatabaseManager dbManager; // Add database manager only to main server and let other implementations use it as well.
 
   protected Selector selector;
   protected ServerSocketChannel serverSocketChannel;
@@ -169,9 +169,9 @@ public abstract class Server {
     // Siin loome suvalise kanali ja salvestame andmebaasi
     final Channel channel = Channel.createChannel(name);
     dbManager.getChannelRepository().save(
-        new diskord.server.database.channel.Channel()
-            .setName(name)
-            .setOwner(owner)
+      new diskord.server.database.channel.Channel()
+        .setName(name)
+        .setOwner(owner)
     );
   }
 

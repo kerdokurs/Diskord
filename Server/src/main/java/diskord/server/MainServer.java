@@ -28,23 +28,23 @@ public class MainServer extends Server {
     switch (payload.getType()) {
       case BINK:
         response = new Payload()
-            .setType(PayloadType.BONK)
-            .setId(UUID.randomUUID());
+          .setType(PayloadType.BONK)
+          .setId(UUID.randomUUID());
         break;
       case INFO: // TODO: Handle this more thoroughly
         response = new Payload()
-            .setType(PayloadType.INFO)
-            .setResponseTo(payload.getId())
-            .putBody("server", "main")
-            .setId(UUID.randomUUID());
+          .setType(PayloadType.INFO)
+          .setResponseTo(payload.getId())
+          .putBody("server", "main")
+          .setId(UUID.randomUUID());
         break;
       default:
         response =
-            new Payload()
-                .setType(PayloadType.INVALID)
-                .setResponseTo(payload.getId())
-                .putBody("message", "invalid request")
-                .setId(UUID.randomUUID());
+          new Payload()
+            .setType(PayloadType.INVALID)
+            .setResponseTo(payload.getId())
+            .putBody("message", "invalid request")
+            .setId(UUID.randomUUID());
     }
 
     socketMap.get(socketChannel).add(response);
