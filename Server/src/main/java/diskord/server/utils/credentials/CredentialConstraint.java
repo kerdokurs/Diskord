@@ -32,6 +32,13 @@ public class CredentialConstraint {
   @Getter
   private final String message;
 
+  /**
+   * Constraint for validating data
+   *
+   * @param error error which will be returned when input data is not valid
+   * @param method method that will be used to check the validity of the input data
+   * @param message message that will be returned when data is not valid
+   */
   public CredentialConstraint(final CredentialError error, final CredentialLambda method, final String message) {
     this.error = error;
     this.method = method;
