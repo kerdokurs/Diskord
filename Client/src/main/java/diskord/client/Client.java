@@ -10,7 +10,7 @@ import java.io.IOException;
 
 
 public class Client extends Application {
-
+  
   public static void main(final String[] args) {
     launch(args);
   }
