@@ -17,7 +17,7 @@ public class TestClient {
 
       System.out.println("client has started");
 
-      final Payload payload = new Payload().setId(UUID.randomUUID()).setType(PayloadType.INFO);
+      final Payload payload = new Payload().setId(UUID.randomUUID()).setType(PayloadType.BINK);
 
       System.out.printf("sending: %s%n", payload);
 

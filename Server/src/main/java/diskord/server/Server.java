@@ -4,6 +4,8 @@ import diskord.server.channel.Channel;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -14,10 +16,9 @@ import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
-import java.util.logging.Logger;
 
 public abstract class Server {
-  private final Logger logger = Logger.getLogger(getClass().getName());
+  private final Logger logger = LogManager.getLogger();
   private final DatabaseManager dbManager; // Add database manager only to main server and let other implementations use it as well.
 
   protected Selector selector;
@@ -48,7 +49,8 @@ public abstract class Server {
 
     logger.info("server has started");
 
-    while (true) {
+    // Use Thread#interrupt to kill the server.
+    while (!Thread.currentThread().isInterrupted()) {
       selector.select();
 
       final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
@@ -78,6 +80,8 @@ public abstract class Server {
       serverSocketChannel.close();
       selector.close();
 
+      Thread.currentThread().interrupt();
+
       logger.info("server has shut down");
     } catch (final Exception e) {
       e.printStackTrace();
@@ -102,7 +106,7 @@ public abstract class Server {
     final SocketChannel channel = (SocketChannel) key.channel();
 
     if (!channel.isOpen()) {
-      logger.warning("channel is closed, skipping");
+      logger.warn("channel is closed, skipping");
       return;
     }
 

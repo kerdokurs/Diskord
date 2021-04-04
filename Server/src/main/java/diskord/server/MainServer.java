@@ -23,13 +23,14 @@ public class MainServer extends Server {
   protected void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
     final SocketChannel socketChannel = (SocketChannel) key.channel();
 
-    Payload response;
+    final Payload response;
 
     switch (payload.getType()) {
       case BINK:
         response = new Payload()
           .setType(PayloadType.BONK)
           .setId(UUID.randomUUID());
+        stop();
         break;
       case INFO: // TODO: Handle this more thoroughly
         response = new Payload()
