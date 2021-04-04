@@ -7,7 +7,6 @@ import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
 import diskord.server.payload.PayloadType;
 import diskord.server.utils.CredentialVerifier;
-import diskord.server.utils.credentials.CredentialConstraint;
 import diskord.server.utils.credentials.CredentialError;
 
 import javax.persistence.NoResultException;
@@ -16,9 +15,10 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Map;
-import java.util.Objects;
 
 import static diskord.server.payload.PayloadType.*;
+import static diskord.server.utils.credentials.CredentialConstraint.*;
+import static diskord.server.utils.credentials.CredentialError.*;
 
 public class MainServer extends Server {
   public MainServer(final int port) {
@@ -74,38 +74,66 @@ public class MainServer extends Server {
 
   private Payload handleRegister(Payload payload) {
     Payload response = new Payload();
-
+    response.setResponseTo(payload.getId());
     String username = (String) payload.getBody().get("username");
     String password = (String) payload.getBody().get("password");
 
-    //check if username, password exist in payload
+    final CredentialError usernameError = CredentialVerifier.verify(
+      username,
+      NULL_CONSTRAINT,
+      TOO_SHORT_CONSTRAINT,
+      TOO_LONG_CONSTRAINT);
 
-    if (username != null && password != null && password.length() >= 6) {
-      try {
-        //if user exists, cannot register new one
-        dbManager.getUserRepository().findOne(username);
-        response
-          .setType(REGISTER_ERROR)
-          .setResponseTo(payload.getId())
-          .putBody("message", "User already exists.");
+    if (!usernameError.equals(NONE)) {
+      response.setType(REGISTER_ERROR);
+    }
+    switch (usernameError) {
+      case NULL_ERROR:
+        response.putBody("message", "Username not provided.");
+        return response;
 
-      } catch (NoResultException e) {
-        User user = new User(username, password, Role.USER);
-        dbManager.getUserRepository().save(user);
-        String loginToken = JWT.sign(
-          user.getId().toString(), Map.of("role", user.getRole())
-        );
+      case LENGTH_ERROR:
+        response.putBody("message", "Username must contain 4 to 50 characters.");
+        return response;
+    }
 
-        response
-          .setType(REGISTER_OK)
-          .setResponseTo(payload.getId())
-          .putBody("token", loginToken);
-      }
-    } else {
+    final CredentialError passwordError = CredentialVerifier.verify(
+      password,
+      NULL_CONSTRAINT,
+      TOO_SHORT_CONSTRAINT,
+      TOO_LONG_CONSTRAINT);
+
+    if (!passwordError.equals(NONE)) {
+      response.setType(REGISTER_ERROR);
+    }
+    switch (passwordError) {
+      case NULL_ERROR:
+        response.putBody("message", "Password input null.");
+        return response;
+      case LENGTH_ERROR:
+        response.putBody("message", "Password must contain 4 to 50 characters.");
+        return response;
+    }
+
+    try {
+      //if user exists, cannot register new one
+      dbManager.getUserRepository().findOne(username);
       response
         .setType(REGISTER_ERROR)
         .setResponseTo(payload.getId())
-        .putBody("message", "username or password does not exist.");
+        .putBody("message", "User already exists.");
+
+    } catch (NoResultException e) {
+      User user = new User(username, password, Role.USER);
+      dbManager.getUserRepository().save(user);
+      String loginToken = JWT.sign(
+        user.getId().toString(), Map.of("role", user.getRole())
+      );
+
+      response
+        .setType(REGISTER_OK)
+        .setResponseTo(payload.getId())
+        .putBody("token", loginToken);
     }
 
     return response;

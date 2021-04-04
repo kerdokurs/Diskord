@@ -10,9 +10,14 @@ public class CredentialConstraint {
     Objects::nonNull
   );
 
-  public static final CredentialConstraint USERNAME_LENGTH_CONSTRAINT = new CredentialConstraint(
+  public static final CredentialConstraint TOO_SHORT_CONSTRAINT = new CredentialConstraint(
     CredentialError.NULL_ERROR,
-    input -> input.length() >= 6
+    input -> input.length() >= 4
+  );
+
+  public static final CredentialConstraint TOO_LONG_CONSTRAINT = new CredentialConstraint(
+    CredentialError.LENGTH_ERROR,
+    input -> input.length() <= 50
   );
 
   @Getter
