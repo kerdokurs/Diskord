@@ -1,10 +1,9 @@
 package diskord.server.utils;
 
 import diskord.server.utils.credentials.CredentialConstraint;
-import diskord.server.utils.credentials.CredentialError;
 
 public class CredentialVerifier {
-  public static CredentialError verify(String data, CredentialConstraint... constraints) {
+  public static String verify(String data, CredentialConstraint... constraints) {
 //    if(data == null){
 //      return CredentialError.NULL_ERROR;
 //    }
@@ -12,10 +11,10 @@ public class CredentialVerifier {
 
     for (final CredentialConstraint constraint : constraints) {
       if (!constraint.getMethod().isValid(data)) {
-        return constraint.getError();
+        return constraint.getMessage();
       }
     }
 
-    return CredentialError.NONE;
+    return null;
   }
 }

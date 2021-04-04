@@ -7,7 +7,6 @@ import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
 import diskord.server.payload.PayloadType;
 import diskord.server.utils.CredentialVerifier;
-import diskord.server.utils.credentials.CredentialError;
 
 import javax.persistence.NoResultException;
 import java.io.IOException;
@@ -18,7 +17,6 @@ import java.util.Map;
 
 import static diskord.server.payload.PayloadType.*;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
-import static diskord.server.utils.credentials.CredentialError.*;
 
 public class MainServer extends Server {
   public MainServer(final int port) {
@@ -78,41 +76,30 @@ public class MainServer extends Server {
     String username = (String) payload.getBody().get("username");
     String password = (String) payload.getBody().get("password");
 
-    final CredentialError usernameError = CredentialVerifier.verify(
+    final String usernameError = CredentialVerifier.verify(
       username,
       NULL_CONSTRAINT,
       TOO_SHORT_CONSTRAINT,
       TOO_LONG_CONSTRAINT);
 
-    if (!usernameError.equals(NONE)) {
-      response.setType(REGISTER_ERROR);
-    }
-    switch (usernameError) {
-      case NULL_ERROR:
-        response.putBody("message", "Username not provided.");
-        return response;
-
-      case LENGTH_ERROR:
-        response.putBody("message", "Username must contain 4 to 50 characters.");
-        return response;
+    if (usernameError != null) {
+      return response
+        .setType(REGISTER_ERROR)
+        .putBody("field", "username")
+        .putBody("message", usernameError);
     }
 
-    final CredentialError passwordError = CredentialVerifier.verify(
+    final String passwordError = CredentialVerifier.verify(
       password,
       NULL_CONSTRAINT,
       TOO_SHORT_CONSTRAINT,
       TOO_LONG_CONSTRAINT);
 
-    if (!passwordError.equals(NONE)) {
-      response.setType(REGISTER_ERROR);
-    }
-    switch (passwordError) {
-      case NULL_ERROR:
-        response.putBody("message", "Password input null.");
-        return response;
-      case LENGTH_ERROR:
-        response.putBody("message", "Password must contain 4 to 50 characters.");
-        return response;
+    if (passwordError != null) {
+      return response
+        .setType(REGISTER_ERROR)
+        .putBody("field", "password")
+        .putBody("message", passwordError);
     }
 
     try {
