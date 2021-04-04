@@ -19,15 +19,18 @@ public class User {
         this.userUUID = user;
     }
 
-    public Image getUserIcon() throws FileNotFoundException {
-        //TODO trycatch filenotfoundexecption
+    public Image getUserIcon(){
         File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
         // Check if user icon exists by UUID
         File icon = new File(diskordDir, "userIcons/" + userUUID.toString() + ".png");
-        if(icon.exists()){
-            return new Image(new FileInputStream(icon), 40,40,false,true);
-        }else{
-            return new Image(new FileInputStream(new File(diskordDir,"userIcons/null.png")), 40,40,false,true);
+        try{
+            if(icon.exists()){
+                return new Image(new FileInputStream(icon), 40,40,false,true);
+            }else{
+                return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
+            }
+        }catch (FileNotFoundException err){
+            return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
         }
     }
 }
