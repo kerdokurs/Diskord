@@ -11,4 +11,12 @@ public enum PayloadType {
   INFO,
 
   INVALID,
+
+  LOGIN,
+  LOGIN_OK,
+  LOGIN_ERROR,
+
+  REGISTER,
+  REGISTER_OK,
+  REGISTER_ERROR
 }

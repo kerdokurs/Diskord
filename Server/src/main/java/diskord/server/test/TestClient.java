@@ -17,7 +17,9 @@ public class TestClient {
 
       System.out.println("client has started");
 
-      final Payload payload = new Payload().setId(UUID.randomUUID()).setType(PayloadType.BINK);
+      final Payload payload = new Payload().setId(UUID.randomUUID()).setType(PayloadType.LOGIN);
+      payload.putBody("username", "cardo");
+      payload.putBody("password","password123");
 
       System.out.printf("sending: %s%n", payload);
 

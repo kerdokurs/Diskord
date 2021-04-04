@@ -18,8 +18,8 @@ import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 
 public abstract class Server {
-  private final Logger logger = LogManager.getLogger();
-  private final DatabaseManager dbManager; // Add database manager only to main server and let other implementations use it as well.
+  protected final Logger logger = LogManager.getLogger();
+  protected final DatabaseManager dbManager; // Add database manager only to main server and let other implementations use it as well.
 
   protected Selector selector;
   protected ServerSocketChannel serverSocketChannel;
