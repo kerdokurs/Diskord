@@ -15,6 +15,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.Map;
 
+import static diskord.server.payload.PayloadBody.*;
 import static diskord.server.payload.PayloadType.*;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
 
@@ -31,7 +32,6 @@ public class MainServer extends Server {
   @Override
   protected void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
     final SocketChannel socketChannel = (SocketChannel) key.channel();
-
     final Payload response;
 
     switch (payload.getType()) {
@@ -43,7 +43,6 @@ public class MainServer extends Server {
       case INFO: // TODO: Handle this more thoroughly
         response = new Payload()
           .setType(INFO)
-          .setResponseTo(payload.getId())
           .putBody("server", "main");
         break;
       case LOGIN:
@@ -57,12 +56,13 @@ public class MainServer extends Server {
       case REGISTER:
         response = handleRegister(payload);
         break;
+
       default:
         response =
           new Payload()
-            .setType(PayloadType.INVALID)
+            .setType(INVALID)
             .setResponseTo(payload.getId())
-            .putBody("message", "invalid request");
+            .putBody(BODY_MESSAGE, BODY_INVALID);
 
     }
 
@@ -73,8 +73,8 @@ public class MainServer extends Server {
   private Payload handleRegister(Payload payload) {
     Payload response = new Payload();
     response.setResponseTo(payload.getId());
-    String username = (String) payload.getBody().get("username");
-    String password = (String) payload.getBody().get("password");
+    String username = (String) payload.getBody().get(BODY_USERNAME);
+    String password = (String) payload.getBody().get(BODY_PASSWORD);
 
     final String usernameError = CredentialVerifier.verify(
       username,
@@ -85,8 +85,8 @@ public class MainServer extends Server {
     if (usernameError != null) {
       return response
         .setType(REGISTER_ERROR)
-        .putBody("field", "username")
-        .putBody("message", usernameError);
+        .putBody(BODY_FIELD, BODY_USERNAME)
+        .putBody(BODY_MESSAGE, usernameError);
     }
 
     final String passwordError = CredentialVerifier.verify(
@@ -98,8 +98,8 @@ public class MainServer extends Server {
     if (passwordError != null) {
       return response
         .setType(REGISTER_ERROR)
-        .putBody("field", "password")
-        .putBody("message", passwordError);
+        .putBody(BODY_FIELD, BODY_PASSWORD)
+        .putBody(BODY_MESSAGE, passwordError);
     }
 
     try {
@@ -108,7 +108,7 @@ public class MainServer extends Server {
       response
         .setType(REGISTER_ERROR)
         .setResponseTo(payload.getId())
-        .putBody("message", "User already exists.");
+        .putBody(BODY_MESSAGE, "User already exists.");
 
     } catch (NoResultException e) {
       User user = new User(username, password, Role.USER);
@@ -120,7 +120,7 @@ public class MainServer extends Server {
       response
         .setType(REGISTER_OK)
         .setResponseTo(payload.getId())
-        .putBody("token", loginToken);
+        .putBody(BODY_TOKEN, loginToken);
     }
 
     return response;
@@ -128,43 +128,57 @@ public class MainServer extends Server {
 
   private Payload handleLogin(Payload payload) {
     Payload response = new Payload();
-    String username = (String) payload.getBody().get("username");
-    String password = (String) payload.getBody().get("password");
+    response.setResponseTo(payload.getId());
+    String username = (String) payload.getBody().get(BODY_USERNAME);
+    String password = (String) payload.getBody().get(BODY_PASSWORD);
 
-    if (username != null && password != null) {
-      try {
-        final User user = dbManager.getUserRepository().findOne(username);
-        final String hashedPassword = Hash.hash(password);
-        if (user.getPassword().equals(hashedPassword)) {
-          String loginToken = JWT.sign(
-            user.getId().toString(), Map.of("role", user.getRole())
-          );
-          response
-            .setType(LOGIN_OK)
-            .setResponseTo(payload.getId())
-            .putBody("token", loginToken);
+    String loginUsernameError = CredentialVerifier.verify(
+      username,
+      NULL_CONSTRAINT
+    );
+    String loginPasswordError = CredentialVerifier.verify(
+      password,
+      NULL_CONSTRAINT
+    );
 
-        } else {
-          response
-            .setType(LOGIN_ERROR)
-            .setResponseTo(payload.getId())
-            .putBody("message", "Wrong password!");
-        }
-      } catch (NoResultException e) {
-        e.printStackTrace(); //delete when done
+    if (loginUsernameError != null) {
+      return response
+        .setType(LOGIN_ERROR)
+        .putBody(BODY_FIELD, BODY_USERNAME)
+        .putBody(BODY_MESSAGE, loginUsernameError);
+    }
+
+    if (loginPasswordError != null) {
+      return response
+        .setType(LOGIN_ERROR)
+        .putBody(BODY_FIELD, BODY_PASSWORD)
+        .putBody(BODY_MESSAGE, loginPasswordError);
+    }
+
+
+    try {
+      final User user = dbManager.getUserRepository().findOne(username);
+      final String hashedPassword = Hash.hash(password);
+      if (user.getPassword().equals(hashedPassword)) {
+        String loginToken = JWT.sign(
+          user.getId().toString(), Map.of("role", user.getRole())
+        );
+        response
+          .setType(LOGIN_OK)
+          .putBody(BODY_TOKEN, loginToken);
+
+      } else {
         response
           .setType(LOGIN_ERROR)
-          .setResponseTo(payload.getId())
-          .putBody("message", "Did not find the user.");
+          .putBody(BODY_MESSAGE, "Wrong password!");
       }
-
-
-    } else {
+    } catch (NoResultException e) {
+      e.printStackTrace(); //delete when done
       response
         .setType(LOGIN_ERROR)
-        .setResponseTo(payload.getId())
-        .putBody("message", "username or password does not exist.");
+        .putBody(BODY_MESSAGE, "Did not find the user.");
     }
+
     return response;
   }
 }
