@@ -1,4 +1,4 @@
-package diskord.server.jpa.user;
+package diskord.server.database.user;
 
 import diskord.server.crypto.Hash;
 import lombok.Getter;
@@ -37,7 +37,7 @@ public class User {
       unique = true
   )
   @Size(
-      min=5,
+      min = 5,
       message = "kasutajanimi peab olema vähemalt 5-tähemärgi pikkune"
   )
   private String username;
@@ -45,7 +45,21 @@ public class User {
   @Getter
   @Setter
   @NotNull
+  @Column(
+      name = "password",
+      nullable = false
+  )
   private String password;
+
+  @Getter
+  @Setter
+  @NotNull
+  @Column(
+      name = "role",
+      nullable = false
+  )
+  @Enumerated(EnumType.STRING)
+  private Role role;
 
   @Getter
   @CreationTimestamp
@@ -62,9 +76,10 @@ public class User {
   )
   private Date updatedAt;
 
-  public User(final String username, final String password) {
+  public User(final String username, final String password, final Role role) {
     this.username = username;
     this.password = Hash.hash(password);
+    this.role = role;
   }
 
   public User() {
@@ -76,6 +91,7 @@ public class User {
         "id=" + id +
         ", username='" + username + '\'' +
         ", password='" + password + '\'' +
+        ", role=" + role +
         ", createdAt=" + createdAt +
         ", updatedAt=" + updatedAt +
         '}';
