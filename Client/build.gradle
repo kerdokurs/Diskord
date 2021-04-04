@@ -35,6 +35,8 @@ repositories {
 
 dependencies {
     compile 'org.projectlombok:lombok:1.18.18'
+    annotationProcessor 'org.projectlombok:lombok:1.18.18'
     compile 'org.openjfx:javafx-controls:15.0.1'
     compile 'org.openjfx:javafx-fxml:16'
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
 }
