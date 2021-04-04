@@ -27,14 +27,8 @@ public class UserRepository implements Repository<User, UUID> {
    * @return otsitav kasutaja
    */
   @Override
-  public User findOne(@NotNull final UUID id) {
-    try{
-      return em.find(User.class, id);
-    } catch (IllegalArgumentException e){
-      System.out.println("Can not find the specified user from the database.");
-      e.printStackTrace();
-    }
-    return null;
+  public User findOne(@NotNull final UUID id)  throws IllegalArgumentException, NoResultException{
+    return em.find(User.class, id);
   }
 
   /**
@@ -44,18 +38,12 @@ public class UserRepository implements Repository<User, UUID> {
    * @param username kasutaja kasutajanimi
    * @return otsitav kasutaja
    */
-  public User findOne(@NotNull final String username) {
-    try{
+  public User findOne(@NotNull final String username) throws NoResultException{
       final String query = "SELECT u FROM User u WHERE u.username = :username";
       final TypedQuery<User> tq = em.createQuery(query, User.class);
       tq.setParameter("username", username);
 
       return tq.getSingleResult();
-    } catch (NoResultException e){
-      System.out.println("Can not find the specified user!");
-      e.printStackTrace();
-    }
-    return null;
   }
 
 
@@ -69,13 +57,8 @@ public class UserRepository implements Repository<User, UUID> {
     final String query = "SELECT u FROM User u WHERE u.id IS NOT NULL";
     final TypedQuery<User> tq = em.createQuery(query, User.class);
 
-    try{
-      return tq.getResultList();
+    return tq.getResultList();
 
-    } catch (Exception e){
-      e.printStackTrace();
-      return new ArrayList<>(); //return an empty ArrayList<User> in case of an error.
-    }
 
   }
 

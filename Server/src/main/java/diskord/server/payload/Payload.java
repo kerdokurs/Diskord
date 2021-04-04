@@ -43,6 +43,7 @@ public class Payload implements Serializable {
   public Payload() {
     timestamp = new Date();
     body = new PayloadBody();
+    id = UUID.randomUUID();
   }
 
   public static Payload fromJson(final String json) throws JsonProcessingException {
@@ -68,8 +69,5 @@ public class Payload implements Serializable {
         ", jwt='" + jwt + '\'' +
         ", body=" + body +
         '}';
-  }
-
-  private static class PayloadBody extends HashMap<String, Object> implements Serializable {
   }
 }
