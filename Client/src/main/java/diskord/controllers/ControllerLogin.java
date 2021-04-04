@@ -9,7 +9,6 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
-import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class ControllerLogin implements Initializable {
         // other
         switch (serverResponse){
             case 0:
-                Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("chat.fxml"));
+                Parent root = FXMLLoader.load(getClass().getClassLoader().getResource("main.fxml"));
                 Stage stage = new Stage();
                 stage.setTitle("Diskord");
                 stage.setScene(new Scene(root));

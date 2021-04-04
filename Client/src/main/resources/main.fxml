@@ -103,7 +103,7 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" onMouseClicked="#fxEventListViewServerOnMouseClicked" prefHeight="503.0" prefWidth="200.0" />
+                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="503.0" prefWidth="200.0" />
           </children>
         </AnchorPane>
         <ScrollPane prefHeight="-1.0" prefWidth="-1.0">
@@ -112,10 +112,10 @@
               <children>
                 <Label alignment="CENTER" font="$x1" layoutX="14.0" layoutY="14.0" style="&#10;" text="Chat" textAlignment="CENTER" textFill="$x2" wrapText="false" />
                         <ListView fx:id="fxListViewChat" layoutX="14.0" layoutY="41.0" prefHeight="427.0" prefWidth="411.0" />
-                        <Label fx:id="fxLabelChatMessage" layoutX="14.0" layoutY="523.0" prefHeight="17.0" prefWidth="411.0" />
+                        <Label fx:id="fxLabelChatStatus" layoutX="14.0" layoutY="523.0" prefHeight="17.0" prefWidth="411.0" />
                         <Button fx:id="fxButtonChatSend" layoutX="376.0" layoutY="479.0" mnemonicParsing="false" onAction="#fxEventButtonSendChat" prefHeight="37.0" prefWidth="50.0" text="Send" />
                         <Button fx:id="fxButtonChatAddFile" ellipsisString="+" layoutX="15.0" layoutY="480.0" mnemonicParsing="false" onAction="#fxEventButtonAddFile" prefHeight="36.0" prefWidth="36.0" text="+" />
-                        <TextArea fx:id="fxTextAreaChatBox" layoutX="59.0" layoutY="480.0" onKeyTyped="#fxEventTextAreaChatOnKeyTyped" prefHeight="37.0" prefWidth="307.0" text="&#10;" />
+                        <TextArea fx:id="fxTextAreaChatBox" layoutX="59.0" layoutY="480.0" prefHeight="37.0" prefWidth="307.0" />
               </children>
             </AnchorPane>
           </content>
