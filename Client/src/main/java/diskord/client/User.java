@@ -10,13 +10,15 @@ import java.util.UUID;
 
 public class User {
     @Getter
-    private String username;
+    private final String username;
     @Getter
-    private UUID userUUID;
-
+    private final UUID userUUID;
+    @Getter
+    private final Image userImage;
     public User(String username, UUID user) {
         this.username = username;
         this.userUUID = user;
+        this.userImage = getUserImage();
     }
 
     public Image getUserIcon(){

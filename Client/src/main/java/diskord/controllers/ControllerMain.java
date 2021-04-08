@@ -21,19 +21,19 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.scene.image.Image;
+import javafx.util.Duration;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+
+import java.io.*;
+import java.math.BigInteger;
 import java.net.URL;
 import java.nio.file.Files;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Base64;
-import java.util.Locale;
-import java.util.ResourceBundle;
-import java.util.UUID;
+import java.util.*;
 
 public class ControllerMain implements Initializable {
 
@@ -64,6 +64,7 @@ public class ControllerMain implements Initializable {
     // Controller objects
     File attachedFile;
     User currentUser;
+    UUID currentChat;
 
     /**
      * Init method for ControllerMain
@@ -74,7 +75,9 @@ public class ControllerMain implements Initializable {
         //TODO Get current user UUID from server
         currentUser = new User("test user", UUID.fromString("bf867bfc-9541-11eb-a8b3-0242ac130003"));
 
-        //TODO Get current server all profile icons
+        getAndSetUserSuscribedServers();
+
+        getUsersIconsFromServer(currentChat);
 
         // Check if Diskord cache folder exists
         File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
@@ -83,7 +86,8 @@ public class ControllerMain implements Initializable {
 
         //TODO Get all user profile icons from server
 
-        // GET ALL PROFILE ICONS FROM SERVER CODE GOES HERE
+
+
         // Set ObservableList of custom listViewServerRows to fxListViewServer. This way when item is added to
         // observable list, it gets added to UI
         fxListViewServers.setItems(listViewServerData);
@@ -107,6 +111,115 @@ public class ControllerMain implements Initializable {
         fxTextAreaChatBox.setWrapText(true);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////// Methods
+
+    /**
+     * Method that gets all servers that user is suscribed to
+     */
+    public void getAndSetUserSuscribedServers(){
+        //TODO Better method naming
+
+        //TODO Request user suscribed servers
+
+        //TODO Replace test data
+
+        // Currently for testing. Single server is in following String array format:
+        // 0 = Server UUID
+        // 1 = Server name
+        // 2 = Server description
+        // 3 = Server Icon in Base 64 (40x40)
+
+        List<String[]> userSuscribedServers = new ArrayList<>();
+        String base64IconTest = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAJySURBVFhH7Zi9dcIwEMdtSEFJSQlkAVYIEzACJSVTwAahw2QJYKLQhQ6agKIzPnI6naxzgAfJi977WbJ1H39LwpZJzcGY5BYlLeoLS62oH7b8C7y0PLzA4I/keOEiv9adB+O8LRbJc7eT1GupB1zv919yG01Zr9dJx/qk1hfqhdIvLzCCnNnrDEY1SqPRMIejdREwBavlyjSbTc+33W7nedAuhC/QXmy1Wl7AECzeGTiExFFAaDbP/AAFXgaoaIDdfs9NnH7eh2jEITATYhBLVCDrVvUDfBZ6vV5eDwYDs/3YmuFw6PSLQSxiBuo4zzLPhPbzPoTajEaj/OLmfeMYURt6nSJmgCGnzrBOUOhytXL6mOsZaiOtMVgC1Ib3I2KG6WTqOJch+QPSTVKhfAlQX0pwCDQiceokqtxkWZzwHBWEEpUFRbQiJV8kKvAalAmN3WgKB2v4sOV/u3Vp+QX7wZutwVhY3Ybzb04x3YCGqVmbbrXNqVToMycGvD/hlQVuWuCVl83n1t8GcJBzcNQCq+zvOLJIOQ9HJTAkLvQWkN4cvkjfTyIqUBKnew9PHB/AFSn7caIC+bZII+6EPVi4UBB5VYE0uF6cC59yuMZMPLBRSWDZ11cMGgfOWbcHNqICYUow8Gl6ZLsypO09M/HARlSg9IuMfctypO09M/HARlQgMB6PnQQUEBv6h0B6sOM6ZqYe2FAJ3O/23nfsT8GYJLwINlQCKdrvDIl89PhfLZ8MvF7kqyyQoh1Z5/FExQERgTfbD5rAdi8tsmHW9AiHUzsvcA7l6VTdbz+IoviNsPO7jeC5QPqaJZdR/xZoDvaQJF9nEvS0a9iLwwAAAABJRU5ErkJggg==";
+        String[] server1Test = new String[]{UUID.randomUUID().toString(), "Test Server 1", "Test server 1 description", base64IconTest};
+        String[] server2Test = new String[]{UUID.randomUUID().toString(), "Test Server 2", "Test server 2 description", base64IconTest};
+        userSuscribedServers.add(server1Test);
+        userSuscribedServers.add(server2Test);
+
+        for (String[] singleServer :userSuscribedServers) {
+            byte[] img = Base64.getDecoder().decode(singleServer[3]);
+            InputStream stream = new ByteArrayInputStream(img);
+            Image serverImage = new Image(stream, 40,40,true,true);
+            listViewServerData.add(
+                    new listViewServerRow(
+                            UUID.fromString(singleServer[0]), // UUID
+                            singleServer[1], // Name
+                            singleServer[2], // Description
+                            serverImage)
+            );
+        }
+
+    }
+
+    /**
+     * Method that gets all user icons in server. First server sends all user UUID and their icons MD5 hash.
+     * After that client compares the list to its locally saved list. If user icon doesnt exist or MD5 hash
+     * is different, it will request new icon from server and save them to cache
+     * @param serverUUID The Servers UUID where Icons are requested
+     */
+    public void getUsersIconsFromServer(UUID serverUUID){
+        //TODO Better method naming
+
+        //TODO Get user UUID and profile icon MD5
+        // If icon is missing, request it from server
+
+        // Retrive Chats Users with their icons MD5 hash
+        List<String[]> userUuidAndMd5TestData = new ArrayList<>();
+
+        //TODO Replace test data
+
+        // All incoming userIcons can be saved in ChatFile.
+        userUuidAndMd5TestData.add(new String[]{"bf867bfc-9541-11eb-a8b3-0242ac130003","7815696ecbf1c96e6894b779456d330e"});
+
+        List<String> missingUserIconsUuid = new ArrayList<>();
+        File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
+        for (int i = 0; i < userUuidAndMd5TestData.size(); i++){
+
+            // Check if user icon exists by UUID
+            File icon = new File(diskordDir, "userIcons/" + userUuidAndMd5TestData.get(i)[0] + ".png");
+            // Check if users icons exist. If they do not or files md5 is wrong then request icon from server
+            if(icon.exists()){
+                //Check MD5 hash
+                try{
+                    // Get MD5 hash of file
+                    MessageDigest md5 = MessageDigest.getInstance("MD5");
+                    md5.update(Files.readAllBytes(icon.toPath()));
+                    String signature = String.format("%032x",new BigInteger(1,md5.digest()));
+                    // Compare hashes
+                    if(!signature.equals(userUuidAndMd5TestData.get(i)[1])){
+                        missingUserIconsUuid.add(userUuidAndMd5TestData.get(i)[0]);
+                    }
+                }catch (NoSuchAlgorithmException err){
+                    // THIS CANNOT HAPPEN
+                }catch (IOException err){
+                    // Retrieve icon from server just in case
+                    missingUserIconsUuid.add(userUuidAndMd5TestData.get(i)[0]);
+                }
+            }
+        }
+
+        //TODO Get user icons by UUID, save as chat files using missingUserIconsUUID list
+
+        //TODO Replace test data
+        List<ChatFile> userIcons = new ArrayList<>();
+        ChatFile chatFile1Test = new ChatFile(UUID.randomUUID(),"bf867bfc-9541-11eb-a8b3-0242ac130003.png",
+                "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAJySURBVFhH7Zi9dcIwEMdtSEFJSQlkAVYIEzACJSVTwAahw2QJYKLQhQ6agKIzPnI6naxzgAfJi977WbJ1H39LwpZJzcGY5BYlLeoLS62oH7b8C7y0PLzA4I/keOEiv9adB+O8LRbJc7eT1GupB1zv919yG01Zr9dJx/qk1hfqhdIvLzCCnNnrDEY1SqPRMIejdREwBavlyjSbTc+33W7nedAuhC/QXmy1Wl7AECzeGTiExFFAaDbP/AAFXgaoaIDdfs9NnH7eh2jEITATYhBLVCDrVvUDfBZ6vV5eDwYDs/3YmuFw6PSLQSxiBuo4zzLPhPbzPoTajEaj/OLmfeMYURt6nSJmgCGnzrBOUOhytXL6mOsZaiOtMVgC1Ib3I2KG6WTqOJch+QPSTVKhfAlQX0pwCDQiceokqtxkWZzwHBWEEpUFRbQiJV8kKvAalAmN3WgKB2v4sOV/u3Vp+QX7wZutwVhY3Ybzb04x3YCGqVmbbrXNqVToMycGvD/hlQVuWuCVl83n1t8GcJBzcNQCq+zvOLJIOQ9HJTAkLvQWkN4cvkjfTyIqUBKnew9PHB/AFSn7caIC+bZII+6EPVi4UBB5VYE0uF6cC59yuMZMPLBRSWDZ11cMGgfOWbcHNqICYUow8Gl6ZLsypO09M/HARlSg9IuMfctypO09M/HARlQgMB6PnQQUEBv6h0B6sOM6ZqYe2FAJ3O/23nfsT8GYJLwINlQCKdrvDIl89PhfLZ8MvF7kqyyQoh1Z5/FExQERgTfbD5rAdi8tsmHW9AiHUzsvcA7l6VTdbz+IoviNsPO7jeC5QPqaJZdR/xZoDvaQJF9nEvS0a9iLwwAAAABJRU5ErkJggg==" );
+        userIcons.add(chatFile1Test);
+
+        // Save files
+        for (ChatFile chatFile: userIcons){
+                // Check if user icon exists by UUID
+                File icon = new File(diskordDir, "userIcons/" + chatFile.getFileName());
+                byte[] img = Base64.getDecoder().decode(chatFile.getBase64File());
+                try (FileOutputStream stream = new FileOutputStream(icon)) {
+                    stream.write(img);
+                }catch (IOException err){
+                    // Thrown when file cannot be accessed when it was created.
+                    // It should not happen but if happens, user will have default icon
+                }
+        }
+    }
+
     /**
      * Method to set original stage to controller. It is needed when child stages are created so parent stages
      * can be passed on. It creates focus on child stage.
@@ -115,6 +228,8 @@ public class ControllerMain implements Initializable {
     public void setStage(Stage stage) {
         this.stage = stage;
     }
+
+
     public void handleChatMessage(User currentUser, String message, String timeStamp, int dataType, ChatFile file){
             listViewChatData.add(
                     new listViewChatRow(
@@ -124,6 +239,10 @@ public class ControllerMain implements Initializable {
                             dataType,
                             file));
     }
+
+
+    ////////////////////////////////////////////////////////////////////////////////// Events
+
     /**
      * JavaFX event in Main scene. Method is called when Send button is clicked.
      * Method will send message to currently open chat.
@@ -227,17 +346,6 @@ public class ControllerMain implements Initializable {
     //TODO Handle changing of servers
     public void fxEventListViewServerOnMouseClicked() {
 
-        var selectedItem = fxListViewServers.getSelectionModel().getSelectedItem();
-        // Check if nothing has been selected
-        if(selectedItem == null){
-            return;
-        }
-        // Get chatID so you can request messages from server
-        Integer chatID = selectedItem.getChatID();
-
-        // SEND SERVER THAT CLIENT REQUESTS CHAT CONTENT
-        // SERVER WILL SEND JSON PARSED MESSAGES
-
     }
 
     /**
@@ -309,7 +417,7 @@ public class ControllerMain implements Initializable {
         Region region2 = new Region();
         HBox.setHgrow(region2, Priority.ALWAYS);
         // Set elements to scene
-        HBox hBox = new HBox(buttonCloseStage,region1, labelImageName,region2, buttonSaveImage);
+        HBox hBox = new HBox(buttonSaveImage,region1, labelImageName,region2, buttonCloseStage);
         hBox.setSpacing(5);
         VBox vBox = new VBox(hBox,imageView);
         vBox.setSpacing(5);
@@ -318,38 +426,25 @@ public class ControllerMain implements Initializable {
         imageStage.show();
     }
 
+    ////////////////////////////////////////////////////////////////////////////////// List view custom cell factory
+
     /**
      * Custom listViewRow class data class. This class holds servers name, description and image.
      */
     private static class listViewServerRow {
+        @Getter
+        private UUID uuid;
+        @Getter
         private Image image;
-        private String serverName;
+        @Getter
+        private String name;
+        @Getter
         private String description;
-        private Integer chatID;
-        public  Integer getChatID(){
-            return chatID;
-        }
-        public String getServerName() {
-            return serverName;
-        }
-        public String getDescription() {
-            return description;
-        }
-        public Image getImage(){
-            return image;
-        }
 
-        /**
-         * Custom listview row object for server listview.
-         * @param name Server name
-         * @param description Server description
-         * @param image Server icon
-         * @param serverID Server
-         */
-        public listViewServerRow(String name, String description,Image image, Integer serverID) {
+        public listViewServerRow(UUID uuid, String name, String description,Image image) {
             super();
-            this.chatID = serverID;
-            this.serverName = name;
+            this.uuid = uuid;
+            this.name = name;
             this.description = description;
             this.image = image;
         }
@@ -361,19 +456,19 @@ public class ControllerMain implements Initializable {
     private class CustomServerListViewCell extends ListCell<listViewServerRow> {
         private HBox content;
         private ImageView imageView;
-        private Text name;
-        private Text description;
+        private Tooltip tooltip;
 
         /**
          * Contstructor for CustomListCell. Define variables and set the layout of single cell
          */
         public CustomServerListViewCell() {
             super();
-            name = new Text();
-            description = new Text();
+            tooltip = new Tooltip();
+            // Set delay when the tooltip shows
+            tooltip.setShowDelay(Duration.millis(100));
+            tooltip.setHideDelay(Duration.ZERO);
             imageView = new ImageView();
-            VBox vBox = new VBox( name, description);
-            content = new HBox(imageView,vBox);
+            content = new HBox(imageView);
             content.setSpacing(10);
         }
 
@@ -381,9 +476,9 @@ public class ControllerMain implements Initializable {
         protected void updateItem(listViewServerRow item, boolean empty) {
             super.updateItem(item, empty);
             if (item != null && !empty) { // <== test for null item and empty parameter
-                name.setText(item.getServerName());
-                description.setText(item.getDescription());
+                tooltip.setText(item.getName() + "\n" + item.getDescription());
                 imageView.setImage(item.getImage());
+                Tooltip.install(content, tooltip);
                 setGraphic(content);
             } else {
                 setGraphic(null);

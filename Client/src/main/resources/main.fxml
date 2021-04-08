@@ -102,7 +102,7 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="503.0" prefWidth="200.0" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="11.0" AnchorPane.topAnchor="41.0" />
+                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="503.0" prefWidth="60.0" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="184.0" AnchorPane.topAnchor="41.0" />
           </children>
         </AnchorPane>
       <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="430.0" SplitPane.resizableWithParent="false">
