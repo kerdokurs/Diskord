@@ -3,6 +3,7 @@ package diskord.server;
 import diskord.server.channel.Channel;
 import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
+import diskord.server.payload.PayloadType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -181,6 +182,13 @@ public abstract class Server implements Runnable {
   }
 
   protected abstract void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException;
+
+  protected Payload unhandledPayload(final Payload payload, final SelectionKey key) {
+    return new Payload()
+      .setType(PayloadType.INVALID)
+      .setResponseTo(payload.getId())
+      .putBody("message", "unhandled payload");
+  }
 
   /**
    * Method for finding a port in a fixed range (if we don't want ServerSocket to choose its own)

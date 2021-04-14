@@ -1,6 +1,6 @@
 package diskord.server.database.user;
 
-import diskord.server.database.Repository;
+import diskord.server.database.OldRepository;
 import javassist.NotFoundException;
 
 import javax.persistence.*;
@@ -8,7 +8,7 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public class UserRepository implements Repository<User, UUID> {
+public class UserRepository implements OldRepository<User, UUID> {
   private final EntityManager em;
 
   public UserRepository(final EntityManager em) {

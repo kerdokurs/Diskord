@@ -1,6 +1,6 @@
 package diskord.server.database.channel;
 
-import diskord.server.database.Repository;
+import diskord.server.database.OldRepository;
 import javassist.NotFoundException;
 
 import javax.persistence.EntityManager;
@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;
 
-public class ChannelRepository implements Repository<Channel, UUID> {
+public class ChannelRepository implements OldRepository<Channel, UUID> {
   public static ChannelRepository INSTANCE;
 
   private final EntityManager em;

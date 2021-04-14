@@ -1,5 +1,7 @@
 package diskord.server.database;
 
+import diskord.server.database.message.MessageRepository;
+import diskord.server.database.room.RoomRepository;
 import diskord.server.database.user.UserRepository;
 
 import javax.persistence.EntityManager;
@@ -10,6 +12,9 @@ public class DatabaseManager {
   private static EntityManager entityManager;
 
   private static UserRepository userRepository;
+
+  private static RoomRepository roomRepository;
+  private static MessageRepository messageRepository;
 
   public static EntityManager entityManager() {
     if (entityManager == null) {
@@ -25,5 +30,19 @@ public class DatabaseManager {
       userRepository = new UserRepository(entityManager());
 
     return userRepository;
+  }
+
+  public static RoomRepository roomRepository() {
+    if (roomRepository == null)
+      roomRepository = new RoomRepository();
+
+    return roomRepository;
+  }
+
+  public static MessageRepository messageRepository() {
+    if (messageRepository == null)
+      messageRepository = new MessageRepository();
+
+    return messageRepository;
   }
 }

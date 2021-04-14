@@ -12,6 +12,11 @@ public enum PayloadType {
 
   INVALID,
 
+  AUTH_ERROR,
+
+  CHAT_ERROR,
+  CHAT_OK,
+
   LOGIN,
   LOGIN_OK,
   LOGIN_ERROR,
