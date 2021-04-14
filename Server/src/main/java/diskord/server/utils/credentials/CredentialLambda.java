@@ -1,5 +1,6 @@
 package diskord.server.utils.credentials;
 
+@FunctionalInterface
 public interface CredentialLambda {
   /**
    * Lambda that can be used to specify whether input is valid

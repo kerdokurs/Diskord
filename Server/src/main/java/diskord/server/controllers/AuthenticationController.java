@@ -18,12 +18,6 @@ import static diskord.server.payload.PayloadType.*;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
 
 public class AuthenticationController {
-  private final UserRepository userRepository;
-
-  public AuthenticationController(final UserRepository userRepository) {
-    this.userRepository = userRepository;
-  }
-
   public static Payload handleSignUp(@NotNull final Payload request) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
