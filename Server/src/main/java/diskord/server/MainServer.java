@@ -38,10 +38,10 @@ public class MainServer extends Server {
           .putBody("server", "main");
         break;
       case LOGIN:
-        response = AuthenticationController.handleSignIn(dbManager, payload);
+        response = AuthenticationController.handleSignIn(payload);
         break;
       case REGISTER:
-        response = AuthenticationController.handleSignUp(dbManager, payload);
+        response = AuthenticationController.handleSignUp(payload);
         break;
       default:
         response = handleInvalidRequest(payload);

@@ -24,7 +24,7 @@ public class AuthenticationController {
     this.userRepository = userRepository;
   }
 
-  public static Payload handleSignUp(@NotNull final DatabaseManager dbManager, @NotNull final Payload request) {
+  public static Payload handleSignUp(@NotNull final Payload request) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 
@@ -100,11 +100,10 @@ public class AuthenticationController {
    * Method for handling signing in
    * TODO: Tests
    *
-   * @param dbManager
    * @param request
    * @return
    */
-  public static Payload handleSignIn(@NotNull DatabaseManager dbManager, @NotNull final Payload request) {
+  public static Payload handleSignIn(@NotNull final Payload request) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 
