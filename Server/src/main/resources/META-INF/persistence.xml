@@ -11,10 +11,14 @@
 
     <properties>
       <property name="hibernate.hbm2ddl.auto" value="update"/>
-      <property name="javax.persistence.jdbc.driver" value="org.postgresql.Driver"/>
-      <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://ec2-34-254-69-72.eu-west-1.compute.amazonaws.com/dc3g2vvml3lec5"/>
-      <property name="javax.persistence.jdbc.user" value="pxdjljvawlaixg"/>
-      <property name="javax.persistence.jdbc.password" value="9eb2401bce2907203279c1a5efae62375620b0d41dbc147dd920bb01f7d88248"/>
+      <property name="javax.persistence.jdbc.driver" value="org.h2.Driver"/>
+      <property name="javax.persistence.jdbc.url" value="jdbc:h2:./db/db"/>
+      <property name="javax.persistence.jdbc.user" value="sa"/>
+      <property name="javax.persistence.jdbc.password" value=""/>
+      <property name="dialect" value="org.hibernate.dialect.H2Dialect"/>
+      <!--      <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://ec2-34-254-69-72.eu-west-1.compute.amazonaws.com/dc3g2vvml3lec5"/>-->
+      <!--      <property name="javax.persistence.jdbc.user" value="pxdjljvawlaixg"/>-->
+      <!--      <property name="javax.persistence.jdbc.password" value="9eb2401bce2907203279c1a5efae62375620b0d41dbc147dd920bb01f7d88248"/>-->
     </properties>
   </persistence-unit>
 </persistence>

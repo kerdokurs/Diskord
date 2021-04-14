@@ -1,20 +1,15 @@
 package diskord.server;
 
-import diskord.server.crypto.Hash;
-import diskord.server.crypto.JWT;
-import diskord.server.database.user.Role;
-import diskord.server.database.user.User;
+import diskord.server.controllers.AuthenticationController;
 import diskord.server.payload.Payload;
-import diskord.server.payload.PayloadType;
 
-import javax.persistence.NoResultException;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.Map;
-import java.util.UUID;
 
+import static diskord.server.payload.PayloadBody.BODY_INVALID;
+import static diskord.server.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.server.payload.PayloadType.*;
 
 public class MainServer extends Server {
@@ -30,122 +25,36 @@ public class MainServer extends Server {
   @Override
   protected void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
     final SocketChannel socketChannel = (SocketChannel) key.channel();
-
     final Payload response;
 
     switch (payload.getType()) {
       case BINK:
         response = new Payload()
           .setType(BONK);
-//        stop(); saab binki ja saadab bonki ja paneb kinni
         break;
       case INFO: // TODO: Handle this more thoroughly
         response = new Payload()
           .setType(INFO)
-          .setResponseTo(payload.getId())
           .putBody("server", "main");
         break;
       case LOGIN:
-        response = handleLogin(payload);
-        //if login OK, response type LOGIN_OK
-
-
-        //check if exists in payload
-        //if login not OK, response type LOGIN_ERROR
+        response = AuthenticationController.handleSignIn(payload);
         break;
       case REGISTER:
-        response = handleRegister(payload);
+        response = AuthenticationController.handleSignUp(payload);
         break;
       default:
-        response =
-          new Payload()
-            .setType(PayloadType.INVALID)
-            .setResponseTo(payload.getId())
-            .putBody("message", "invalid request");
-
+        response = handleInvalidRequest(payload);
     }
 
     socketMap.get(socketChannel).add(response);
     socketChannel.register(selector, SelectionKey.OP_WRITE);
   }
 
-  private Payload handleRegister(Payload payload) {
-    Payload response = new Payload();
-
-    String username = (String) payload.getBody().get("username");
-    String password = (String) payload.getBody().get("password");
-
-    //check if username, password exist in payload
-
-    if (username != null && password != null && password.length()>=6) {
-      try{
-        //if user exists, cannot register new one
-        dbManager.getUserRepository().findOne(username);
-        response
-          .setType(REGISTER_ERROR)
-          .setResponseTo(payload.getId())
-          .putBody("message","User already exists.");
-
-      } catch(NoResultException e){
-        User user = new User(username, password, Role.USER);
-        dbManager.getUserRepository().save(user);
-        String loginToken = JWT.sign(
-          user.getId().toString(), Map.of("role", user.getRole())
-        );
-
-        response
-          .setType(REGISTER_OK)
-          .setResponseTo(payload.getId())
-          .putBody("token", loginToken);
-      }
-    } else {
-      response
-        .setType(REGISTER_ERROR)
-        .setResponseTo(payload.getId())
-        .putBody("message", "username or password does not exist.");
-    }
-
-    return response;
-  }
-
-  private Payload handleLogin(Payload payload) {
-    Payload response = new Payload();
-    String username = (String) payload.getBody().get("username");
-    String password = (String) payload.getBody().get("password");
-    if (username != null && password != null) {
-      try {
-        final User user = dbManager.getUserRepository().findOne(username);
-        final String hashedPassword = Hash.hash(password);
-        if (user.getPassword().equals(hashedPassword)) {
-          String loginToken = JWT.sign(
-            user.getId().toString(), Map.of("role", user.getRole())
-          );
-          response
-            .setType(LOGIN_OK)
-            .setResponseTo(payload.getId())
-            .putBody("token", loginToken);
-
-        } else {
-          response
-            .setType(LOGIN_ERROR)
-            .setResponseTo(payload.getId())
-            .putBody("message", "Wrong password!");
-        }
-      } catch (NoResultException e) {
-        e.printStackTrace(); //delete when done
-        response
-          .setType(LOGIN_ERROR)
-          .setResponseTo(payload.getId())
-          .putBody("message", "Did not find the user.");
-      }
-
-
-    } else {
-      response
-        .setType(LOGIN_ERROR)
-        .setResponseTo(payload.getId())
-        .putBody("message", "username or password does not exist.");
-    }
-    return response;
+  private Payload handleInvalidRequest(final Payload request) {
+    return new Payload()
+      .setType(INVALID)
+      .setResponseTo(request.getId())
+      .putBody(BODY_MESSAGE, BODY_INVALID);
   }
 }
