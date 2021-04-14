@@ -17,9 +17,11 @@ public class MainServer extends Server {
     super(port);
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     final Server server = new MainServer(8192);
-    server.start();
+
+    final Thread mainServerThread = new Thread(server, "Main server");
+    mainServerThread.start();
   }
 
   @Override

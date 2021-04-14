@@ -1,13 +1,13 @@
 package diskord.server;
 
 import diskord.server.channel.Channel;
-import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.User;
 import diskord.server.payload.Payload;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -17,7 +17,7 @@ import java.nio.channels.*;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 
-public abstract class Server {
+public abstract class Server implements Runnable {
   protected final Logger logger = LogManager.getLogger();
 
   protected Selector selector;
@@ -41,27 +41,31 @@ public abstract class Server {
     serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
   }
 
-  public void start() throws IOException {
-    init();
+  public void run() {
+    try {
+      init();
 
-    logger.info("server has started");
+      logger.info("server has started");
 
-    // Use Thread#interrupt to kill the server.
-    while (!Thread.currentThread().isInterrupted()) {
-      selector.select();
+      // Use Thread#interrupt to kill the server.
+      while (!Thread.currentThread().isInterrupted()) {
+        selector.select();
 
-      final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+        final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-      while (keys.hasNext()) {
-        final SelectionKey key = keys.next();
-        keys.remove();
+        while (keys.hasNext()) {
+          final SelectionKey key = keys.next();
+          keys.remove();
 
-        if (!key.isValid()) continue;
+          if (!key.isValid()) continue;
 
-        if (key.isAcceptable()) accept(key);
-        if (key.isReadable()) read(key);
-        if (key.isWritable()) write(key);
+          if (key.isAcceptable()) accept(key);
+          if (key.isReadable()) read(key);
+          if (key.isWritable()) write(key);
+        }
       }
+    } catch (final IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
