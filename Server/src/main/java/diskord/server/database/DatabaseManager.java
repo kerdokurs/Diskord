@@ -1,5 +1,6 @@
 package diskord.server.database;
 
+import diskord.server.database.attachment.AttachmentRepository;
 import diskord.server.database.message.MessageRepository;
 import diskord.server.database.room.RoomRepository;
 import diskord.server.database.user.UserRepository;
@@ -14,7 +15,9 @@ public class DatabaseManager {
   private static UserRepository userRepository;
 
   private static RoomRepository roomRepository;
+
   private static MessageRepository messageRepository;
+  private static AttachmentRepository attachmentRepository;
 
   public static EntityManager entityManager() {
     if (entityManager == null) {
@@ -44,5 +47,12 @@ public class DatabaseManager {
       messageRepository = new MessageRepository();
 
     return messageRepository;
+  }
+
+  public static AttachmentRepository attachmentRepository() {
+    if (attachmentRepository == null)
+      attachmentRepository = new AttachmentRepository();
+
+    return attachmentRepository;
   }
 }

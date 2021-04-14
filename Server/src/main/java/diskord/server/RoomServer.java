@@ -2,6 +2,7 @@ package diskord.server;
 
 import diskord.server.crypto.JWT;
 import diskord.server.database.DatabaseManager;
+import diskord.server.database.attachment.Attachment;
 import diskord.server.database.message.Message;
 import diskord.server.database.room.Room;
 import diskord.server.database.user.User;
@@ -34,7 +35,7 @@ public class RoomServer extends Server {
       case CHAT:
         final PayloadBody body = payload.getBody();
         final String content = (String) body.get("message");
-        final String attachment = (String) body.get("attachment");
+        final String attachmentData = (String) body.get("attachment");
         final String roomId = (String) body.get("room");
         final String jwt = payload.getJwt();
 
@@ -84,12 +85,18 @@ public class RoomServer extends Server {
 
         // TODO: check the validity of the attachment base64 string
 
+        final Attachment attachment = new Attachment()
+          .setType("image/png")
+          .setName("test.png")
+          .setBase64(attachmentData);
+
         final Message message = new Message()
           .setRoom(room)
           .setContent(content)
           .setAttachment(attachment)
           .setAuthor(author);
 
+        DatabaseManager.attachmentRepository().save(attachment);
         DatabaseManager.messageRepository().save(message);
 
         response = new Payload()

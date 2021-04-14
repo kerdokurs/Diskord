@@ -1,5 +1,6 @@
 package diskord.server.database.message;
 
+import diskord.server.database.attachment.Attachment;
 import diskord.server.database.room.Room;
 import diskord.server.database.user.User;
 import lombok.Getter;
@@ -34,7 +35,9 @@ public class Message {
 
   @Getter
   @Setter
-  private String attachment; // base64 string of attachment
+  @OneToOne
+  @JoinColumn(name = "attachment")
+  private Attachment attachment;
 
   @Getter
   @Setter
