@@ -39,4 +39,7 @@ dependencies {
     implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
     compile 'org.apache.logging.log4j:log4j-core:2.11.2'
     compile 'com.h2database:h2:1.4.200'
+    compile 'junit:junit:4.13.2'
+    compile 'org.junit.jupiter:junit-jupiter-api:5.8.0-M1'
+    compile 'org.junit.jupiter:junit-jupiter-engine:5.8.0-M1'
 }
