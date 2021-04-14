@@ -3,12 +3,8 @@ package diskord.server.database.user;
 import diskord.server.database.Repository;
 import javassist.NotFoundException;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityTransaction;
-import javax.persistence.NoResultException;
-import javax.persistence.TypedQuery;
+import javax.persistence.*;
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,13 +17,14 @@ public class UserRepository implements Repository<User, UUID> {
 
   /**
    * Tagastab andmebaasist otsitava kasutaja<br>
-   *
+   * <p>
    * Kui ei leia siis tagastab <i>null</i>-i
+   *
    * @param id otsitava kasutaja id
    * @return otsitav kasutaja
    */
   @Override
-  public User findOne(@NotNull final UUID id)  throws IllegalArgumentException, NoResultException{
+  public User findOne(@NotNull final UUID id) throws IllegalArgumentException, NoResultException {
     return em.find(User.class, id);
   }
 
@@ -35,15 +32,16 @@ public class UserRepository implements Repository<User, UUID> {
    * Tagastab otsitava kasutaja
    * Kui otsitavat kasutajat ei leidu siis püüab NoResultExceptioni, prindib stack trace ning
    * tagastab <i>null</i>-i
+   *
    * @param username kasutaja kasutajanimi
    * @return otsitav kasutaja
    */
-  public User findOne(@NotNull final String username) throws NoResultException{
-      final String query = "SELECT u FROM User u WHERE u.username = :username";
-      final TypedQuery<User> tq = em.createQuery(query, User.class);
-      tq.setParameter("username", username);
+  public User findOne(@NotNull final String username) throws NoResultException {
+    final String query = "SELECT u FROM User u WHERE u.username = :username";
+    final TypedQuery<User> tq = em.createQuery(query, User.class);
+    tq.setParameter("username", username);
 
-      return tq.getSingleResult();
+    return tq.getSingleResult();
   }
 
 
@@ -58,8 +56,6 @@ public class UserRepository implements Repository<User, UUID> {
     final TypedQuery<User> tq = em.createQuery(query, User.class);
 
     return tq.getResultList();
-
-
   }
 
   /**
@@ -69,20 +65,17 @@ public class UserRepository implements Repository<User, UUID> {
    * @return <code>true</code>, kui salvestamine õnnestus, <code>false</code> muul juhul
    */
   @Override
-  public boolean save(@NotNull final User user) {
+  public boolean save(@NotNull final User user) throws EntityExistsException {
     EntityTransaction et = null;
 
     try {
       et = em.getTransaction();
 
       et.begin();
-
       em.persist(user);
-      em.flush();
 
       et.commit();
-    } catch (final Exception e) {
-      // TODO: Pane siia täpsem Exception
+    } catch (final EntityExistsException e) {
       if (et != null) et.rollback();
 
       return false;
@@ -107,9 +100,7 @@ public class UserRepository implements Repository<User, UUID> {
     try {
       em.detach(user); // mdea, kas on vaja või üldse töötab nii
       em.remove(user);
-      em.flush();
     } catch (final Exception e) {
-      e.printStackTrace();
       return false;
     }
 

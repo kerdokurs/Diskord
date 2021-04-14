@@ -19,7 +19,6 @@ import java.util.*;
 
 public abstract class Server {
   protected final Logger logger = LogManager.getLogger();
-  protected final DatabaseManager dbManager; // Add database manager only to main server and let other implementations use it as well.
 
   protected Selector selector;
   protected ServerSocketChannel serverSocketChannel;
@@ -29,8 +28,6 @@ public abstract class Server {
 
   protected Server(final int port) {
     socketAddress = new InetSocketAddress("localhost", port);
-
-    dbManager = new DatabaseManager();
   }
 
   public void init() throws IOException {
@@ -172,11 +169,6 @@ public abstract class Server {
   public void createChannel(final String name, final User owner) {
     // Siin loome suvalise kanali ja salvestame andmebaasi
     final Channel channel = Channel.createChannel(name);
-    dbManager.getChannelRepository().save(
-      new diskord.server.database.channel.Channel()
-        .setName(name)
-        .setOwner(owner)
-    );
   }
 
   public void startChannel(final UUID id) {

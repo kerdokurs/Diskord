@@ -1,28 +1,29 @@
 package diskord.server.database;
 
-import diskord.server.database.channel.ChannelRepository;
 import diskord.server.database.user.UserRepository;
-import lombok.Getter;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 
 public class DatabaseManager {
-  @Getter
-  private EntityManager entityManager;
+  private static EntityManager entityManager;
 
-  @Getter
-  private UserRepository userRepository;
+  private static UserRepository userRepository;
 
-  @Getter
-  private ChannelRepository channelRepository;
+  public static EntityManager entityManager() {
+    if (entityManager == null) {
+      final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
+      entityManager = factory.createEntityManager();
+    }
 
-  public DatabaseManager() {
-    final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
-    entityManager = factory.createEntityManager();
+    return entityManager;
+  }
 
-    userRepository = new UserRepository(entityManager);
-    channelRepository = new ChannelRepository(entityManager);
+  public static UserRepository userRepository() {
+    if (userRepository == null)
+      userRepository = new UserRepository(entityManager());
+
+    return userRepository;
   }
 }

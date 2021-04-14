@@ -2,13 +2,20 @@ package diskord.server.controllers;
 
 import diskord.server.crypto.Hash;
 import diskord.server.crypto.JWT;
+import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.Role;
 import diskord.server.database.user.User;
 import diskord.server.database.user.UserRepository;
-import javassist.NotFoundException;
+import diskord.server.payload.Payload;
+import diskord.server.utils.CredentialValidator;
 
+import javax.persistence.NoResultException;
 import javax.validation.constraints.NotNull;
 import java.util.Map;
+
+import static diskord.server.payload.PayloadBody.*;
+import static diskord.server.payload.PayloadType.*;
+import static diskord.server.utils.credentials.CredentialConstraint.*;
 
 public class AuthenticationController {
   private final UserRepository userRepository;
@@ -17,40 +24,150 @@ public class AuthenticationController {
     this.userRepository = userRepository;
   }
 
-  /**
-   * See meetod handlib kasutaja registreerimise
-   * TODO: Lisa siia ka jwt generatsioon ja edastus (?)
-   *
-   * @param username kasutajanimi
-   * @param password parool
-   */
-  public void handleSignUp(@NotNull final String username, @NotNull final String password) {
-    final User user = new User(username, password, Role.USER);
+  public static Payload handleSignUp(@NotNull final DatabaseManager dbManager, @NotNull final Payload request) {
+    Payload response = new Payload();
+    response.setResponseTo(request.getId());
 
-    // prolly vajab erindite viskamist, kuna hibernate ei viskab ise erindi.
-    userRepository.save(user);
+    // Getting register data from the request body
+    String username = (String) request.getBody().get(BODY_USERNAME);
+    String password = (String) request.getBody().get(BODY_PASSWORD);
+
+    // Validating username
+    final String usernameError = CredentialValidator.validate(
+      username,
+      NULL_CONSTRAINT,
+      TOO_SHORT_CONSTRAINT,
+      TOO_LONG_CONSTRAINT
+    );
+
+    // If username is not valid, return a response with information
+    if (usernameError != null) {
+      return response
+        .setType(REGISTER_ERROR)
+        .putBody(BODY_FIELD, BODY_USERNAME)
+        .putBody(BODY_MESSAGE, usernameError);
+    }
+
+    // Validating password
+    final String passwordError = CredentialValidator.validate(
+      password,
+      NULL_CONSTRAINT,
+      TOO_SHORT_CONSTRAINT,
+      TOO_LONG_CONSTRAINT
+    );
+
+    // If password is not valid, return a response with information
+    if (passwordError != null) {
+      return response
+        .setType(REGISTER_ERROR)
+        .putBody(BODY_FIELD, BODY_PASSWORD)
+        .putBody(BODY_MESSAGE, passwordError);
+    }
+
+    try {
+      // Trying to find existing user. When it's found alert user that the username
+      // is already taken.
+      DatabaseManager.userRepository().findOne(username);
+      response
+        .setType(REGISTER_ERROR)
+        .setResponseTo(request.getId())
+        .putBody(BODY_MESSAGE, "username is taken");
+    } catch (NoResultException e) {
+      // If UserRepsitory#findOne does not return NoResultException, then user with
+      // specified username does not exist. Thus we can create one.
+
+      // Creating and storing the new user
+      User user = new User(username, password, Role.USER);
+      DatabaseManager.userRepository().save(user);
+
+      // Creating jsonwebtoken for the logged in user
+      String loginToken = JWT.sign(
+        user.getId().toString(), Map.of("role", user.getRole())
+      );
+
+      // Responding with OK and token
+      response
+        .setType(REGISTER_OK)
+        .setResponseTo(request.getId())
+        .putBody(BODY_TOKEN, loginToken);
+    }
+
+    return response;
+
   }
 
   /**
-   * See meetod handlib kasutaja sisse logimise
-   * TODO: Arenda edasi, lõpeta parem versioon
+   * Method for handling signing in
+   * TODO: Tests
    *
-   * @param username kasutajanimi
-   * @param password parool
-   * @return sisselogimisel allkirjastatud jwt (jsonwebtoken)
-   * @throws NotFoundException        visatakse, kui kasutajat ei leidu
-   * @throws IllegalArgumentException visatakse, kui parool on vale
+   * @param dbManager
+   * @param request
+   * @return
    */
-  public String handleSignIn(@NotNull final String username, @NotNull final String password) throws NotFoundException, IllegalArgumentException {
-    final User user = userRepository.findOne(username);
+  public static Payload handleSignIn(@NotNull DatabaseManager dbManager, @NotNull final Payload request) {
+    Payload response = new Payload();
+    response.setResponseTo(request.getId());
 
-    if (user == null) throw new NotFoundException("kasutaja ei leitud");
+    // Getting submitted data from the payload body
+    String username = (String) request.getBody().get(BODY_USERNAME);
+    String password = (String) request.getBody().get(BODY_PASSWORD);
 
-    final String hashedPassword = Hash.hash(password);
+    // Validating username and password on login
+    String loginUsernameError = CredentialValidator.validate(
+      username,
+      NULL_CONSTRAINT
+    );
 
-    if (!user.getPassword().equals(hashedPassword)) throw new IllegalArgumentException("vale parool");
+    if (loginUsernameError != null) {
+      return response
+        .setType(LOGIN_ERROR)
+        .putBody(BODY_FIELD, BODY_USERNAME)
+        .putBody(BODY_MESSAGE, loginUsernameError);
+    }
 
-    // TODO: Täpsem claimide seadmine (kas vaja id, roll vms)
-    return JWT.sign(user.getId().toString(), Map.of());
+    String loginPasswordError = CredentialValidator.validate(
+      password,
+      NULL_CONSTRAINT
+    );
+
+    if (loginPasswordError != null) {
+      return response
+        .setType(LOGIN_ERROR)
+        .putBody(BODY_FIELD, BODY_PASSWORD)
+        .putBody(BODY_MESSAGE, loginPasswordError);
+    }
+
+    try {
+      // Fetching user specified by its username from the database
+      final User user = DatabaseManager.userRepository().findOne(username);
+
+      // Hashing provided password to compare against the one in database
+      final String hashedPassword = Hash.hash(password);
+
+      // Comparing the passwords
+      if (user.getPassword().equals(hashedPassword)) {
+        // Login was successful, generating jsonwebtoken
+        String loginToken = JWT.sign(
+          user.getId().toString(), Map.of("role", user.getRole())
+        );
+
+        // Populating response with proper data
+        response
+          .setType(LOGIN_OK)
+          .putBody(BODY_TOKEN, loginToken);
+      } else {
+        // Password was incorrect, inform client
+        response
+          .setType(LOGIN_ERROR)
+          .putBody(BODY_MESSAGE, "Wrong password!");
+      }
+    } catch (NoResultException e) {
+      // User was not found, inform client
+      response
+        .setType(LOGIN_ERROR)
+        .putBody(BODY_MESSAGE, "Did not find the user.");
+    }
+
+    return response;
   }
 }
