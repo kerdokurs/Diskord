@@ -1,58 +1,71 @@
 package diskord.server.database;
 
-import diskord.server.database.attachment.AttachmentRepository;
-import diskord.server.database.message.MessageRepository;
-import diskord.server.database.room.RoomRepository;
-import diskord.server.database.user.UserRepository;
-
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
+import javax.validation.constraints.NotNull;
+import java.util.List;
 
 public class DatabaseManager {
-  private static EntityManager entityManager;
+  private final EntityManagerFactory factory;
 
-  private static UserRepository userRepository;
-
-  private static RoomRepository roomRepository;
-
-  private static MessageRepository messageRepository;
-  private static AttachmentRepository attachmentRepository;
-
-  public static EntityManager entityManager() {
-    if (entityManager == null) {
-      final EntityManagerFactory factory = Persistence.createEntityManagerFactory("DiskordServer.database");
-      entityManager = factory.createEntityManager();
-    }
-
-    return entityManager;
+  public DatabaseManager() {
+    factory = Persistence.createEntityManagerFactory("DiskordServer.database");
   }
 
-  public static UserRepository userRepository() {
-    if (userRepository == null)
-      userRepository = new UserRepository(entityManager());
-
-    return userRepository;
+  public <T, D> T getOne(@NotNull Class<T> entityClass, @NotNull D primaryKey) {
+    return runTransaction(em -> em.find(entityClass, primaryKey));
   }
 
-  public static RoomRepository roomRepository() {
-    if (roomRepository == null)
-      roomRepository = new RoomRepository();
-
-    return roomRepository;
+  public <T> List<T> getAll(Class<T> entityClass) {
+    return runTransaction(em ->
+      em.createQuery(String.format("FROM %s", entityClass.getName()), entityClass)
+        .getResultList()
+    );
   }
 
-  public static MessageRepository messageRepository() {
-    if (messageRepository == null)
-      messageRepository = new MessageRepository();
+  public <T> boolean save(@NotNull T obj) {
+    return runTransaction(em -> {
+      EntityTransaction et = em.getTransaction();
 
-    return messageRepository;
+      try {
+        et.begin();
+        em.persist(obj);
+        et.commit();
+      } catch (Exception e) {
+        if (et != null) et.rollback();
+
+        return false;
+      }
+
+      return true;
+    });
   }
 
-  public static AttachmentRepository attachmentRepository() {
-    if (attachmentRepository == null)
-      attachmentRepository = new AttachmentRepository();
+  public <T> boolean delete(@NotNull T obj) {
+    return runTransaction(em -> delete(obj, em));
+  }
 
-    return attachmentRepository;
+  public <T> boolean delete(@NotNull T obj, EntityManager em) {
+    em.remove(obj);
+    return true;
+  }
+
+  public <T, D> boolean deleteById(@NotNull Class<T> entityClass, @NotNull D id) {
+    return runTransaction(em -> {
+      final T obj = getOne(entityClass, id);
+      return delete(obj, em);
+    });
+  }
+
+  public <T> T runTransaction(final Transaction<T> transaction) {
+    final EntityManager em = factory.createEntityManager();
+
+    final T t = transaction.execute(em);
+
+    em.close();
+
+    return t;
   }
 }
