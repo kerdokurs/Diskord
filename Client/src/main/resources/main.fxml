@@ -49,7 +49,7 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.controllers.ControllerMain">
+<VBox prefHeight="600.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerMain">
   <children>
     <MenuBar VBox.vgrow="NEVER">
       <menus>

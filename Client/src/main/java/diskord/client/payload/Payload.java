@@ -1,4 +1,4 @@
-package diskord.payload;
+package diskord.client.payload;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,7 +7,6 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class Payload implements Serializable {

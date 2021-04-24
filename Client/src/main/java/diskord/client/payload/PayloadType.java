@@ -1,4 +1,4 @@
-package diskord.payload;
+package diskord.client.payload;
 
 // Tegemist on payloadi tüübiga, mis määrab ära, mida tegema peab
 public enum PayloadType {

@@ -1,4 +1,4 @@
-package diskord.controllers;
+package diskord.client.controllers;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

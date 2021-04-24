@@ -1,4 +1,4 @@
-package diskord.controllers;
+package diskord.client.controllers;
 
 import diskord.client.ChatFile;
 import diskord.client.User;
@@ -252,6 +252,7 @@ public class ControllerMain implements Initializable {
         if(fxTextAreaChatBox.getLength() == 0 && attachedFile == null){
             return;
         }
+        //TODO Strip not working
         // Get user message
         String message = fxTextAreaChatBox.getText();
         // Strip unnecessary new lines from start and end of message

@@ -8,7 +8,7 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="285.0" prefWidth="496.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.controllers.ControllerLogin">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="285.0" prefWidth="496.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerLogin">
    <children>
       <Button fx:id="fxButtonSignIn" layoutX="264.0" layoutY="208.0" mnemonicParsing="false" onAction="#fxEventButtonActionSignIn" prefHeight="25.0" prefWidth="78.0" text="Sign in" />
       <Label layoutX="264.0" layoutY="52.0" prefHeight="35.0" prefWidth="78.0" text="Log In">

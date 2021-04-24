@@ -1,6 +1,6 @@
 package diskord.client;
 
-import diskord.controllers.ControllerMain;
+import diskord.client.controllers.ControllerMain;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
