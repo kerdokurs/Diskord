@@ -1,9 +1,11 @@
 package diskord.server;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.server.channel.Channel;
+import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.User;
-import diskord.server.payload.Payload;
-import diskord.server.payload.PayloadType;
+import diskord.payload.Payload;
+import diskord.payload.PayloadType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,15 +22,20 @@ import java.util.*;
 
 public abstract class Server implements Runnable {
   protected final Logger logger = LogManager.getLogger();
-
+  protected final DatabaseManager dbManager;
+  protected final InetSocketAddress socketAddress;
   protected Selector selector;
   protected ServerSocketChannel serverSocketChannel;
   protected Map<SocketChannel, Queue<Payload>> socketMap = new HashMap<>();
+  protected ObjectMapper mapper = new ObjectMapper();
 
-  private InetSocketAddress socketAddress;
-
-  protected Server(final int port) {
+  /**
+   * @param port      port that the server should run on
+   * @param dbManager the only instance of database manager
+   */
+  protected Server(final int port, final DatabaseManager dbManager) {
     socketAddress = new InetSocketAddress("localhost", port);
+    this.dbManager = dbManager;
   }
 
   public void init() throws IOException {
@@ -42,6 +49,7 @@ public abstract class Server implements Runnable {
     serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
   }
 
+  @Override
   public void run() {
     try {
       init();
@@ -82,6 +90,9 @@ public abstract class Server implements Runnable {
       serverSocketChannel.close();
       selector.close();
 
+      // database manager must be closed after using it
+      dbManager.close();
+
       Thread.currentThread().interrupt();
 
       logger.info("server has shut down");
@@ -98,7 +109,7 @@ public abstract class Server implements Runnable {
     final Socket socket = channel.socket();
     final SocketAddress socketAddress = socket.getRemoteSocketAddress(); // TODO: See panna äkki mingisse klassi, mis hoiab endas ka kasutajat vms
 
-    logger.info(String.format("connection from %s", socketAddress));
+    logger.info(() -> String.format("connection from %s", socketAddress));
 
     socketMap.put(channel, new ArrayDeque<>());
     channel.register(selector, SelectionKey.OP_READ);
@@ -139,7 +150,7 @@ public abstract class Server implements Runnable {
     jsonBuffer.flip();
 
     final String jsonData = new String(jsonBuffer.array());
-    final Payload payload = Payload.fromJson(jsonData);
+    final Payload payload = Payload.fromJson(mapper, jsonData);
 
     handlePayload(payload, key);
   }
@@ -159,7 +170,7 @@ public abstract class Server implements Runnable {
       return;
     }
 
-    final byte[] payloadData = payload.toJson().getBytes();
+    final byte[] payloadData = payload.toJson(mapper).getBytes();
     final int payloadSize = payloadData.length;
 
     final ByteBuffer jsonBuffer = ByteBuffer.allocate(4 + payloadSize);

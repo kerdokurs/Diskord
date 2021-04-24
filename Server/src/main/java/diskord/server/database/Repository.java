@@ -14,8 +14,9 @@ public abstract class Repository<T, ID> {
   }
 
   public T getOne(@NotNull ID id) {
-    final EntityManager em = DatabaseManager.entityManager();
-    return em.find(entityClass, id);
+//    final EntityManager em = DatabaseManager.entityManager();
+//    return em.find(entityClass, id);
+    return null;
   }
 
   // TODO: Find a way to do this generically.
@@ -24,7 +25,8 @@ public abstract class Repository<T, ID> {
   public boolean save(@NotNull T obj) {
     EntityTransaction et = null;
 
-    final EntityManager em = DatabaseManager.entityManager();
+//    final EntityManager em = DatabaseManager.entityManager();
+    final EntityManager em = null;
 
     try {
       et = em.getTransaction();
@@ -50,7 +52,8 @@ public abstract class Repository<T, ID> {
 
   public boolean delete(@NotNull T obj) {
     // WARNING: Not testable
-    final EntityManager em = DatabaseManager.entityManager();
+//    final EntityManager em = DatabaseManager.entityManager();
+  final EntityManager em = null;
 
     try {
       // idk if necessary

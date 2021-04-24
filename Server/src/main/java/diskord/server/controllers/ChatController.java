@@ -1,34 +1,38 @@
 package diskord.server.controllers;
 
-import diskord.server.crypto.JWT;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import diskord.payload.Payload;
+import diskord.payload.PayloadBody;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.attachment.Attachment;
 import diskord.server.database.message.Message;
 import diskord.server.database.room.Room;
 import diskord.server.database.user.User;
-import diskord.server.payload.Payload;
-import diskord.server.payload.PayloadBody;
-import io.jsonwebtoken.Claims;
 
 import javax.validation.constraints.NotNull;
 import java.util.UUID;
 
-import static diskord.server.payload.PayloadBody.BODY_MESSAGE;
-import static diskord.server.payload.PayloadType.*;
+import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadType.*;
 
 public class ChatController {
-  public static Payload handleMessage(@NotNull final Payload request) {
+  private ChatController() {
+  }
+
+  public static Payload handleMessage(@NotNull final DatabaseManager dbManager, @NotNull final Payload request) {
     final Payload response = new Payload();
 
     final PayloadBody body = request.getBody();
+
     final String content = (String) body.get("message");
     final String attachmentData = (String) body.get("attachment");
     final String roomId = (String) body.get("room");
+
     final String jwt = request.getJwt();
+    final DecodedJWT token = JWT.decode(jwt);
 
-    final Claims validatedJWT = JWT.validate(jwt); // check use validity
-
-    if (validatedJWT == null) {
+    if (token == null) {
       // Something was wrong with decoding the jwt
       return response
         .setType(AUTH_ERROR)
@@ -45,9 +49,9 @@ public class ChatController {
         .putBody(BODY_MESSAGE, "invalid message");
     }
 
-    // We can get the author id from the jwt like this
-    final UUID authorId = UUID.fromString(validatedJWT.getSubject());
-    final User author = DatabaseManager.userRepository().findOne(authorId);
+    // We can get the author from the jwt like this
+    final UUID authorId = UUID.fromString(token.getSubject());
+    final User author = dbManager.getOne(User.class, authorId);
 
     if (author == null) {
       return response
@@ -57,7 +61,7 @@ public class ChatController {
     }
 
     final UUID roomUuid = UUID.fromString(roomId);
-    final Room room = DatabaseManager.roomRepository().findOne(roomUuid);
+    final Room room = dbManager.getOne(Room.class, roomUuid);
 
     if (room == null) {
       return response
@@ -79,8 +83,8 @@ public class ChatController {
       .setAttachment(attachment)
       .setAuthor(author);
 
-    DatabaseManager.attachmentRepository().save(attachment);
-    DatabaseManager.messageRepository().save(message);
+    dbManager.save(attachment);
+    dbManager.save(message);
 
     return response
       .setType(CHAT_OK)

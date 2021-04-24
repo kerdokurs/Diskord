@@ -1,7 +1,8 @@
 package diskord.server;
 
 import diskord.server.controllers.ChatController;
-import diskord.server.payload.Payload;
+import diskord.server.database.DatabaseManager;
+import diskord.payload.Payload;
 
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
@@ -10,8 +11,8 @@ import java.nio.channels.SocketChannel;
 public class RoomServer extends Server {
   // TODO: Should a room server know which room its hosting???
 
-  protected RoomServer(final int port) {
-    super(port);
+  protected RoomServer(final int port, final DatabaseManager dbManager) {
+    super(port, dbManager);
   }
 
   // TODO: should we do this on the main server aswell?
@@ -26,7 +27,7 @@ public class RoomServer extends Server {
 
     switch (payload.getType()) {
       case MSG:
-        response = ChatController.handleMessage(payload);
+        response = ChatController.handleMessage(dbManager, payload);
         break;
       default:
         response = unhandledPayload(payload, key);
