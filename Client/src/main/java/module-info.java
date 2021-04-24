@@ -5,7 +5,11 @@ module diskord.client {
     requires lombok;
     requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
+    requires org.apache.logging.log4j;
+    requires org.apache.logging.log4j.core;
+    exports diskord.client.payload;
     exports diskord.client;
     // https://stackoverflow.com/questions/62659576/illegalaccessexception-cannot-access-class-c-in-module-m-because-module-m-doe
     opens diskord.client.controllers to javafx.fxml;
+    opens diskord.client.payload to com.fasterxml.jackson.databind;
 }

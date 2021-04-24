@@ -4,6 +4,7 @@ import diskord.client.ServerConnection;
 import diskord.client.TestData;
 import diskord.client.payload.Payload;
 import diskord.client.payload.PayloadBody;
+import diskord.client.payload.PayloadType;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
@@ -13,8 +14,10 @@ import javafx.scene.control.TextField;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 
 public class ControllerRegister implements Initializable {
@@ -67,10 +70,16 @@ public class ControllerRegister implements Initializable {
      * is clicked. Method validates user input and then registers account. If account cant be
      * register by server side, it will notify user!
      */
-    public void fxEventButtonActionRegister() {
+    public void fxEventButtonActionRegister() throws IOException, InterruptedException {
         if (passwordValid) {
             //TODO Register client and get response code
-            Payload serverResponse = TestData.getRegisterData();
+            Payload registerPayload = new Payload();
+            registerPayload.setType(PayloadType.REGISTER);
+            registerPayload.putBody("username",fxTextFieldUsername.getText());
+            registerPayload.putBody("password",fxTextFieldPassword.getText());
+            serverConnection.write(registerPayload);
+
+            Payload serverResponse = serverConnection.getPayloadsToRecive().poll();
             switch (serverResponse.getType()) {
                 case REGISTER_OK:
                     fxLabelMessage.setText("Account created!");

@@ -107,11 +107,21 @@ public class ControllerLogin implements Initializable {
      * Method will attempt to login user. If not possible, it will notify user why login failed.
      * @throws IOException Throws IOException when fxml file can not be loaded
      */
-    public void fxEventButtonActionSignIn() throws IOException {
-        //TODO Handle client login here
+    public void fxEventButtonActionSignIn() throws IOException, InterruptedException {
+        //Handle client login
+        Payload loginPayload = new Payload();
+        loginPayload.setType(PayloadType.LOGIN);
+        loginPayload.putBody("username",fxTextFieldUsername.getText());
+        loginPayload.putBody("password",fxTextFieldPassword.getText());
+        serverConnection.write(loginPayload);
+
 
         //TODO Replace test data
-        Payload serverResponse = TestData.getLoginData();
+        //Payload serverResponse = TestData.getLoginData();
+        Payload serverResponse = null;
+        while ((serverResponse = serverConnection.getPayloadsToRecive().poll()) == null) {
+            Thread.sleep(200);
+        }
         PayloadBody serverResponseBody = serverResponse.getBody();
 
         switch (serverResponse.getType()){
@@ -166,8 +176,9 @@ public class ControllerLogin implements Initializable {
         registerStage.initOwner(mainStage);
         FXMLLoader registerLoader = new FXMLLoader(getClass().getClassLoader().getResource("register.fxml"));
         Parent registerRoot = (Parent)registerLoader.load();
-        ControllerRegister controller = (ControllerRegister) registerLoader.getController();
-        controller.setMainStage(registerStage);
+        ControllerRegister serverController = (ControllerRegister) registerLoader.getController();
+        serverController.setMainStage(registerStage);
+        serverController.setServerConnection(serverConnection);
         registerStage.setTitle("Register");
         registerStage.setScene(new Scene(registerRoot));
         registerStage.show();

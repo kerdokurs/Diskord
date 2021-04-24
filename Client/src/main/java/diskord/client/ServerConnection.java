@@ -3,18 +3,23 @@ package diskord.client;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.client.payload.Payload;
 import lombok.Getter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 
 public class ServerConnection implements Runnable {
     private final InetSocketAddress address;
-
+    private Logger logger = LogManager.getLogger(getClass().getName());
     private final ObjectMapper mapper = new ObjectMapper();
 
     private SocketChannel channel;
@@ -22,7 +27,10 @@ public class ServerConnection implements Runnable {
     // should we have a blocking queue for handling the incoming payloads?
     // if not, remove this.
     @Getter
-    private BlockingQueue<Payload> payloads = new SynchronousQueue<>();
+    private Deque<Payload> payloadsToRecive = new ArrayDeque<>();
+
+    @Getter
+    private Deque<Payload> payloadsToSend = new ArrayDeque<>();
 
     // This should run on a new thread separate from the UI
     public ServerConnection(final InetSocketAddress address) {
@@ -33,13 +41,20 @@ public class ServerConnection implements Runnable {
     public void run() {
         try (final SocketChannel channel = SocketChannel.open(address)) {
             this.channel = channel;
+            //channel.configureBlocking(false);
 
             System.out.println("client has started");
 
             while (!Thread.currentThread().isInterrupted()) {
                 // idk if we should read all the data we can and process it on the go
                 // or wait for a read and for a write
-                payloads.offer(read());
+                //payloads.offer(read());
+                if(channel.isConnected()){
+                    if(!payloadsToSend.isEmpty()){
+                        write(payloadsToSend.poll());
+                    }
+                    payloadsToRecive.offer(read());
+                }
             }
 
             // channel will be closed after the while loop exists by the twr block
@@ -70,6 +85,7 @@ public class ServerConnection implements Runnable {
         messageBuffer.flip();
 
         final String message = new String(messageBuffer.array());
+        logger.info(() -> message);
         return Payload.fromJson(mapper, message);
     }
 
