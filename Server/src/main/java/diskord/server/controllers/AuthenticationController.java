@@ -1,24 +1,28 @@
 package diskord.server.controllers;
 
+import diskord.payload.Payload;
+import diskord.server.crypto.Auth;
 import diskord.server.crypto.Hash;
-import diskord.server.crypto.JWT;
 import diskord.server.database.DatabaseManager;
+import diskord.server.database.transactions.UserTransactions;
 import diskord.server.database.user.Role;
 import diskord.server.database.user.User;
-import diskord.server.database.user.UserRepository;
-import diskord.server.payload.Payload;
 import diskord.server.utils.CredentialValidator;
 
 import javax.persistence.NoResultException;
 import javax.validation.constraints.NotNull;
 import java.util.Map;
 
-import static diskord.server.payload.PayloadBody.*;
-import static diskord.server.payload.PayloadType.*;
+import static diskord.payload.PayloadBody.*;
+import static diskord.payload.PayloadType.*;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
 
 public class AuthenticationController {
-  public static Payload handleSignUp(@NotNull final Payload request) {
+  private AuthenticationController() {
+  }
+
+  public static Payload handleSignUp(@NotNull DatabaseManager dbManager,
+                                     @NotNull final Payload request) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 
@@ -61,7 +65,6 @@ public class AuthenticationController {
     try {
       // Trying to find existing user. When it's found alert user that the username
       // is already taken.
-      DatabaseManager.userRepository().findOne(username);
       response
         .setType(REGISTER_ERROR)
         .setResponseTo(request.getId())
@@ -72,12 +75,10 @@ public class AuthenticationController {
 
       // Creating and storing the new user
       User user = new User(username, password, Role.USER);
-      DatabaseManager.userRepository().save(user);
+      dbManager.save(user);
 
       // Creating jsonwebtoken for the logged in user
-      String loginToken = JWT.sign(
-        user.getId().toString(), Map.of("role", user.getRole())
-      );
+      String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
 
       // Responding with OK and token
       response
@@ -97,7 +98,7 @@ public class AuthenticationController {
    * @param request
    * @return
    */
-  public static Payload handleSignIn(@NotNull final Payload request) {
+  public static Payload handleSignIn(@NotNull final DatabaseManager dbManager, @NotNull final Payload request) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 
@@ -132,7 +133,7 @@ public class AuthenticationController {
 
     try {
       // Fetching user specified by its username from the database
-      final User user = DatabaseManager.userRepository().findOne(username);
+      final User user = UserTransactions.getUserByUsername(dbManager, username);
 
       // Hashing provided password to compare against the one in database
       final String hashedPassword = Hash.hash(password);
@@ -140,9 +141,7 @@ public class AuthenticationController {
       // Comparing the passwords
       if (user.getPassword().equals(hashedPassword)) {
         // Login was successful, generating jsonwebtoken
-        String loginToken = JWT.sign(
-          user.getId().toString(), Map.of("role", user.getRole())
-        );
+        String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
 
         // Populating response with proper data
         response

@@ -1,25 +1,32 @@
 package diskord.server;
 
 import diskord.server.controllers.AuthenticationController;
-import diskord.server.payload.Payload;
+import diskord.server.controllers.ChatController;
+import diskord.server.database.DatabaseManager;
+import diskord.payload.Payload;
 
-import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
 
-import static diskord.server.payload.PayloadBody.BODY_INVALID;
-import static diskord.server.payload.PayloadBody.BODY_MESSAGE;
-import static diskord.server.payload.PayloadType.*;
+import static diskord.payload.PayloadBody.BODY_INVALID;
+import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadType.*;
 
 public class MainServer extends Server {
+  private List<RoomServer> roomServers = new ArrayList<>();
+
   public MainServer(final int port) {
-    super(port);
+    super(port, new DatabaseManager());
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) {
     final Server server = new MainServer(8192);
-    server.start();
+
+    final Thread mainServerThread = new Thread(server, "Main server");
+    mainServerThread.start();
   }
 
   @Override
@@ -38,10 +45,13 @@ public class MainServer extends Server {
           .putBody("server", "main");
         break;
       case LOGIN:
-        response = AuthenticationController.handleSignIn(payload);
+        response = AuthenticationController.handleSignIn(dbManager, payload);
         break;
       case REGISTER:
-        response = AuthenticationController.handleSignUp(payload);
+        response = AuthenticationController.handleSignUp(dbManager, payload);
+        break;
+      case MSG:
+        response = ChatController.handleMessage(dbManager, payload);
         break;
       default:
         response = handleInvalidRequest(payload);

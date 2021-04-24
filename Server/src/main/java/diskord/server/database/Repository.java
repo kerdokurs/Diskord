@@ -1,49 +1,70 @@
 package diskord.server.database;
 
-import javassist.NotFoundException;
-
+import javax.persistence.EntityExistsException;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityTransaction;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
-/**
- * Tegemist on JPA (Java Persistence API) repo ülesehtusega.
- * Sellega suhtleme andmebaasiga. Iga repo implementeerib oma
- * vajadused ise.
- *
- * @param <T>  klass
- * @param <ID> klassi id tüüp (unikaalne)
- */
-public interface Repository<T, ID> {
-  /**
-   * Leiab ühe isendi andmebaasist
-   *
-   * @param id otsitava isendi id
-   * @return tagastab isendi või <code>null</code>, kui seda ei leidu
-   */
-  T findOne(@NotNull final ID id);
+public abstract class Repository<T, ID> {
+  private final Class<T> entityClass;
 
-  /**
-   * Leiab kõik isendid
-   *
-   * @return kõi kisendid või tühja listi, kui neid pole
-   */
-  List<T> findAll();
+  protected Repository(final Class<T> entityClass) {
+    this.entityClass = entityClass;
+  }
 
-  /**
-   * Salvestab isendi andmebaasi
-   *
-   * @param t salvestatav isend
-   * @return <code>true</code>, kui suudeti salvestada, <code>false</code> muul juhul
-   */
-  boolean save(@NotNull T t);
+  public T getOne(@NotNull ID id) {
+//    final EntityManager em = DatabaseManager.entityManager();
+//    return em.find(entityClass, id);
+    return null;
+  }
 
-  /**
-   * Kustutab isendi andmebaasist
-   *
-   * @param id kustutava isendi id
-   * @return <code>true</code>, kui kustutamine õnnestus, <code>false</code> muul juhul
-   * @throws NotFoundException kui kasutajat ei leitud
-   * TODO: Kas boolean tagastustüüpi on sel juhul üldse vaja?
-   */
-  boolean delete(@NotNull ID id) throws NotFoundException;
+  // TODO: Find a way to do this generically.
+  public abstract List<T> getAll();
+
+  public boolean save(@NotNull T obj) {
+    EntityTransaction et = null;
+
+//    final EntityManager em = DatabaseManager.entityManager();
+    final EntityManager em = null;
+
+    try {
+      et = em.getTransaction();
+
+      et.begin();
+
+      em.persist(obj);
+
+      et.commit();
+    } catch (final EntityExistsException e) {
+      if (et != null) et.rollback();
+
+      return false;
+    }
+
+    return true;
+  }
+
+  public boolean deleteById(@NotNull ID id) {
+    final T obj = getOne(id);
+    return delete(obj);
+  }
+
+  public boolean delete(@NotNull T obj) {
+    // WARNING: Not testable
+//    final EntityManager em = DatabaseManager.entityManager();
+  final EntityManager em = null;
+
+    try {
+      // idk if necessary
+      em.detach(obj);
+      em.remove(obj);
+    } catch (final Exception e) {
+      // TODO: Add more specific exception
+      // TODO: Should it just throw the exception?
+      return false;
+    }
+
+    return false;
+  }
 }
