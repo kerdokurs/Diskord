@@ -1,6 +1,7 @@
 package diskord.client.controllers;
 
 import diskord.client.ChatFile;
+import diskord.client.ServerConnection;
 import diskord.client.User;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -59,12 +60,13 @@ public class ControllerMain implements Initializable {
     @FXML
     ObservableList<listViewChatRow> listViewChatData = FXCollections.observableArrayList();
     @FXML
-    private Stage stage;
+    private Stage mainStage;
 
     // Controller objects
     File attachedFile;
     User currentUser;
     UUID currentChat;
+    ServerConnection serverConnection;
 
     /**
      * Init method for ControllerMain
@@ -225,10 +227,25 @@ public class ControllerMain implements Initializable {
      * can be passed on. It creates focus on child stage.
      * @param stage Original stage that is first created.
      */
-    public void setStage(Stage stage) {
-        this.stage = stage;
+    public void setMainStage(Stage stage) {
+        this.mainStage = stage;
     }
 
+    /**
+     * Method to set currentUser to controller.
+     * @param currentUser
+     */
+    public void setCurrentUser(User currentUser){
+        this.currentUser = currentUser;
+    }
+
+    /**
+     * Method to pass servers connection to controller.
+     * @param serverConnection
+     */
+    public void setServerConnection(ServerConnection serverConnection){
+        this.serverConnection = serverConnection;
+    }
 
     public void handleChatMessage(User currentUser, String message, String timeStamp, int dataType, ChatFile file){
             listViewChatData.add(
@@ -330,7 +347,7 @@ public class ControllerMain implements Initializable {
         fileChooser.setTitle("Select your file!");
         // Open file chooser in desktop folder
         fileChooser.setInitialDirectory(new File(System.getProperty("user.home"), "Desktop"));
-        attachedFile = fileChooser.showOpenDialog(stage);
+        attachedFile = fileChooser.showOpenDialog(mainStage);
         if(attachedFile.length() > 1250000){
             fxLabelChatStatus.setText(attachedFile.getName() + " is larger than 10Mb!");
             attachedFile = null;
@@ -377,7 +394,7 @@ public class ControllerMain implements Initializable {
         Image image = chatFile.getImage(0);
         // Create new stage where to show image
         Stage imageStage = new Stage();
-        imageStage.initOwner(stage);
+        imageStage.initOwner(mainStage);
         imageStage.initStyle(StageStyle.UNDECORATED);
         // Create new pane and  set padding
         StackPane pane = new StackPane();
@@ -568,7 +585,7 @@ public class ControllerMain implements Initializable {
             if (item != null && !empty) {
                 // Set username, user icon and timestamp
                 textUsername.setText(item.user.getUsername());
-                imageViewUserIcon.setImage(item.getUser().getUserIcon());
+                imageViewUserIcon.setImage(item.getUser().getUserIconFromFile());
                 textSentDate.setText(item.getTimestamp());
 
                 //Check dataype property to know what type of message it is

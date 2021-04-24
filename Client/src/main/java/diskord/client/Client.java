@@ -1,6 +1,6 @@
 package diskord.client;
 
-import diskord.client.controllers.ControllerMain;
+import diskord.client.controllers.ControllerLogin;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -19,12 +19,15 @@ public class Client extends Application {
 
   @Override
   public void start(final Stage stage) throws IOException {
-    FXMLLoader loader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
-    Parent root = (Parent)loader.load();
-    ControllerMain controller = (ControllerMain) loader.getController();
-    controller.setStage(stage);
+    //TODO Establish connection to server
+
+    // Show login screen
+    FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
+    Parent loginRoot = (Parent)loginLoader.load();
+    ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
+    loginController.setMainStage(stage);
     stage.setTitle("Login");
-    stage.setScene(new Scene(root));
+    stage.setScene(new Scene(loginRoot));
     stage.show();
   }
 }

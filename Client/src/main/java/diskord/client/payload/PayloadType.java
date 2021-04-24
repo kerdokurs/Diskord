@@ -17,5 +17,6 @@ public enum PayloadType {
   LOGIN_ERROR,
 
   REGISTER,
+  REGISTER_OK,
   REGISTER_ERROR,
 }
