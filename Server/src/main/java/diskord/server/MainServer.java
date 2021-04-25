@@ -1,23 +1,15 @@
 package diskord.server;
 
+import diskord.payload.Payload;
 import diskord.server.controllers.AuthenticationController;
 import diskord.server.controllers.ChatController;
 import diskord.server.database.DatabaseManager;
-import diskord.payload.Payload;
-
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
-import java.util.List;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.*;
 
 public class MainServer extends Server {
-  private List<RoomServer> roomServers = new ArrayList<>();
-
   public MainServer(final int port) {
     super(port, new DatabaseManager());
   }
@@ -27,12 +19,15 @@ public class MainServer extends Server {
 
     final Thread mainServerThread = new Thread(server, "Main server");
     mainServerThread.start();
+
+
   }
 
   @Override
-  protected void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
-    final SocketChannel socketChannel = (SocketChannel) key.channel();
+  protected Payload handlePayload(final Payload payload) {
     final Payload response;
+
+    logger.info(() -> payload);
 
     switch (payload.getType()) {
       case BINK:
@@ -57,8 +52,7 @@ public class MainServer extends Server {
         response = handleInvalidRequest(payload);
     }
 
-    socketMap.get(socketChannel).add(response);
-    socketChannel.register(selector, SelectionKey.OP_WRITE);
+    return response;
   }
 
   private Payload handleInvalidRequest(final Payload request) {

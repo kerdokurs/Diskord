@@ -1,22 +1,25 @@
 package diskord.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import diskord.payload.Payload;
+import diskord.payload.PayloadType;
 import diskord.server.channel.Channel;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.User;
-import diskord.payload.Payload;
-import diskord.payload.PayloadType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
 
@@ -26,7 +29,7 @@ public abstract class Server implements Runnable {
   protected final InetSocketAddress socketAddress;
   protected Selector selector;
   protected ServerSocketChannel serverSocketChannel;
-  protected Map<SocketChannel, Queue<Payload>> socketMap = new HashMap<>();
+  protected Map<SocketChannel, Queue<ByteBuffer>> socketMap = new HashMap<>();
   protected ObjectMapper mapper = new ObjectMapper();
 
   /**
@@ -46,7 +49,10 @@ public abstract class Server implements Runnable {
     serverSocketChannel.configureBlocking(false);
 
     serverSocketChannel.socket().bind(socketAddress);
-    serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+    // serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
+    final int validOps = serverSocketChannel.validOps();
+    serverSocketChannel.register(selector, validOps);
   }
 
   @Override
@@ -68,13 +74,18 @@ public abstract class Server implements Runnable {
 
           if (!key.isValid()) continue;
 
-          if (key.isAcceptable()) accept(key);
-          if (key.isReadable()) read(key);
-          if (key.isWritable()) write(key);
+          try {
+            if (key.isAcceptable()) accept(key);
+            if (key.isReadable()) read(key);
+            if (key.isWritable() && !socketMap.get((SocketChannel) key.channel()).isEmpty()) write(key);
+          } catch (final Exception e) {
+            System.out.println(e);
+          }
         }
       }
     } catch (final IOException e) {
-      throw new UncheckedIOException(e);
+      System.out.println("error");
+//      throw new UncheckedIOException(e);
     }
   }
 
@@ -102,8 +113,8 @@ public abstract class Server implements Runnable {
   }
 
   private void accept(final SelectionKey key) throws IOException {
-    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-    final SocketChannel channel = serverChannel.accept();
+//    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
+    final SocketChannel channel = serverSocketChannel.accept();
     channel.configureBlocking(false);
 
     final Socket socket = channel.socket();
@@ -111,12 +122,13 @@ public abstract class Server implements Runnable {
 
     logger.info(() -> String.format("connection from %s", socketAddress));
 
-    socketMap.put(channel, new ArrayDeque<>());
+    socketMap.put(channel, new ArrayDeque<>(10));
     channel.register(selector, SelectionKey.OP_READ);
   }
 
   private void read(final SelectionKey key) throws IOException {
     final SocketChannel channel = (SocketChannel) key.channel();
+    logger.info(() -> String.format("incoming data from %s", channel));
 
     if (!channel.isOpen()) {
       logger.warn("channel is closed, skipping");
@@ -152,49 +164,48 @@ public abstract class Server implements Runnable {
     final String jsonData = new String(jsonBuffer.array());
     final Payload payload = Payload.fromJson(mapper, jsonData);
 
-    handlePayload(payload, key);
+    logger.info(() -> String.format("payload received: %s", payload));
+
+    final Payload response = handlePayload(payload);
+    final ByteBuffer buffer = payloadToByteBuffer(response);
+    socketMap.get(channel).add(buffer);
+    channel.register(selector, SelectionKey.OP_WRITE);
   }
 
   private void write(final SelectionKey key) throws IOException {
     final SocketChannel channel = (SocketChannel) key.channel();
+    logger.info(() -> String.format("trying to write to %s", channel));
 
-    read(key);
+    final Queue<ByteBuffer> buffers = socketMap.get(channel);
+    if (buffers == null || buffers.isEmpty()) return;
 
-    final Queue<Payload> payloads = socketMap.get(channel);
-    if (payloads == null || payloads.isEmpty()) return;
+    final ByteBuffer buffer = buffers.poll();
 
-    final Payload payload = payloads.poll();
-
-    if (payload == null) {
-      read(key);
+    if (buffer == null) {
       return;
     }
 
+    logger.info(() -> String.format("writing %s%n to %s", buffer, channel));
+
+    channel.write(buffer);
+  }
+
+  private ByteBuffer payloadToByteBuffer(final Payload payload) throws JsonProcessingException {
     final byte[] payloadData = payload.toJson(mapper).getBytes();
     final int payloadSize = payloadData.length;
 
-    final ByteBuffer jsonBuffer = ByteBuffer.allocate(4 + payloadSize);
-    jsonBuffer.putInt(payloadSize);
-    jsonBuffer.put(payloadData);
+    final ByteBuffer buffer = ByteBuffer.allocate(4 + payloadSize);
+    buffer.putInt(payloadSize);
+    buffer.put(payloadData);
 
-    jsonBuffer.flip();
+    buffer.flip();
 
-    channel.write(jsonBuffer);
+    return buffer;
   }
 
-  public void createChannel(final String name, final User owner) {
-    // Siin loome suvalise kanali ja salvestame andmebaasi
-    final Channel channel = Channel.createChannel(name);
-  }
+  protected abstract Payload handlePayload(final Payload payload);
 
-  public void startChannel(final UUID id) {
-    // TODO: Siin startida antud IDga kanal (kui puudub, ei tee midagi)
-    // Iga kanal on oma lõim, mis haldab oma kliente, sõnumeid jms ise.
-  }
-
-  protected abstract void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException;
-
-  protected Payload unhandledPayload(final Payload payload, final SelectionKey key) {
+  protected Payload unhandledPayload(final Payload payload) {
     return new Payload()
       .setType(PayloadType.INVALID)
       .setResponseTo(payload.getId())
