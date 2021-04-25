@@ -2,36 +2,60 @@ package diskord.server.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
+import diskord.payload.PayloadType;
+import diskord.server.crypto.Auth;
+import lombok.Getter;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 
-public abstract class Client implements Runnable {
+public class Client {
   private final InetSocketAddress address;
 
   private final ObjectMapper mapper = new ObjectMapper();
 
+  @Getter
   private SocketChannel channel;
 
   // should we have a blocking queue for handling the incoming payloads?
   // if not, remove this.
+  @Getter
   private BlockingQueue<Payload> payloads = new SynchronousQueue<>();
+
+  private BlockingQueue<Payload> dataToSend = new SynchronousQueue<>();
 
   // This should run on a new thread separate from the UI
   protected Client(final InetSocketAddress address) {
     this.address = address;
+
+    try {
+      this.channel = SocketChannel.open(address);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException, InterruptedException {
+//    System.out.println(Auth.encode("kerdo", Map.of()));
     final InetSocketAddress address = new InetSocketAddress("localhost", 8192);
+    Client client = new Client(address);
+
+    final Payload payload = new Payload().setType(PayloadType.LOGIN).putBody("username", "kerdo").putBody("password", "testing"); // demo reading a payload
+    client.write(payload);
+    System.out.println(client.read());
+    Thread.sleep(2500);
+    client.write(payload);
+    System.out.println(client.read());
+
+    client.getChannel().close();
   }
 
-  @Override
   public void run() {
     try (final SocketChannel channel = SocketChannel.open(address)) {
       this.channel = channel;
@@ -41,9 +65,7 @@ public abstract class Client implements Runnable {
       while (!Thread.currentThread().isInterrupted()) {
         // idk if we should read all the data we can and process it on the go
         // or wait for a read and for a write
-
-        final Payload payload = read(); // demo reading a payload
-        write(payload); // demo of writing a payload
+//        payloads.offer(read());
       }
 
       // channel will be closed after the while loop exists by the twr block

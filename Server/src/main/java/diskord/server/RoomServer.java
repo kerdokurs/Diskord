@@ -1,12 +1,8 @@
 package diskord.server;
 
+import diskord.payload.Payload;
 import diskord.server.controllers.ChatController;
 import diskord.server.database.DatabaseManager;
-import diskord.payload.Payload;
-
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 
 public class RoomServer extends Server {
   // TODO: Should a room server know which room its hosting???
@@ -20,9 +16,7 @@ public class RoomServer extends Server {
   // also, the performance should not take a huge hit since the nio socketchannels
   // can handle big payload capacities.
   @Override
-  protected void handlePayload(final Payload payload, final SelectionKey key) throws ClosedChannelException {
-    final SocketChannel socketChannel = (SocketChannel) key.channel();
-
+  protected Payload handlePayload(final Payload payload) {
     final Payload response;
 
     switch (payload.getType()) {
@@ -30,10 +24,9 @@ public class RoomServer extends Server {
         response = ChatController.handleMessage(dbManager, payload);
         break;
       default:
-        response = unhandledPayload(payload, key);
+        response = unhandledPayload(payload);
     }
 
-    socketMap.get(socketChannel).add(response);
-    socketChannel.register(selector, SelectionKey.OP_WRITE);
+    return response;
   }
 }
