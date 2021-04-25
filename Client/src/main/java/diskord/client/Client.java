@@ -23,3 +23,5 @@ public class Client extends Application {
     stage.show();
   }
 }
+
+//TODO: clientside implementations of message validity (0 < length <= 255, length ∈ N)

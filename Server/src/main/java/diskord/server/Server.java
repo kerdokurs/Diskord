@@ -89,28 +89,28 @@ public abstract class Server implements Runnable {
     }
   }
 
-  // Does not work yet
-  // TODO: Fix.
-  public void stop() {
-    try {
-      logger.info("shutting server down");
-
-      for (final SocketChannel socketChannel : socketMap.keySet())
-        socketChannel.close();
-
-      serverSocketChannel.close();
-      selector.close();
-
-      // database manager must be closed after using it
-      dbManager.close();
-
-      Thread.currentThread().interrupt();
-
-      logger.info("server has shut down");
-    } catch (final Exception e) {
-      e.printStackTrace();
-    }
-  }
+//  // Does not work yet
+//  // TODO: Fix.
+//  public void stop() {
+//    try {
+//      logger.info("shutting server down");
+//
+//      for (final SocketChannel socketChannel : socketMap.keySet())
+//        socketChannel.close();
+//
+//      serverSocketChannel.close();
+//      selector.close();
+//
+//      // database manager must be closed after using it
+//      dbManager.close();
+//
+//      Thread.currentThread().interrupt();
+//
+//      logger.info("server has shut down");
+//    } catch (final Exception e) {
+//      e.printStackTrace();
+//    }
+//  }
 
   private void accept(final SelectionKey key) throws IOException {
 //    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();

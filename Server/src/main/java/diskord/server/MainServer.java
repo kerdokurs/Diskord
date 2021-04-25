@@ -20,7 +20,6 @@ public class MainServer extends Server {
     final Thread mainServerThread = new Thread(server, "Main server");
     mainServerThread.start();
 
-
   }
 
   @Override

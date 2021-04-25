@@ -11,6 +11,7 @@ import diskord.server.database.room.Room;
 import diskord.server.database.user.User;
 
 import javax.validation.constraints.NotNull;
+import java.util.Base64;
 import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
@@ -40,13 +41,19 @@ public class ChatController {
         .putBody(BODY_MESSAGE, "token not valid");
     }
 
-    // TODO: Validate the message
-    // suppose this is the validation for now.
+    // TODO: Validate the message[0<length<=255 constraint implemented, might want to add more constraints later tho]
+
     if (content.length() == 0) {
       return response
-        .setType(CHAT_ERROR)
+        .setType(CHAT_ERROR_EMPTY)
         .setResponseTo(request.getId())
-        .putBody(BODY_MESSAGE, "invalid message");
+        .putBody(BODY_MESSAGE, "Message cannot be empty.");
+    }
+    if(content.length() > 255){
+      return response
+        .setType(CHAT_ERROR_TOOLONG)
+        .setResponseTo(request.getId())
+        .putBody(BODY_MESSAGE, "Message cannot be over 255 characters long.");
     }
 
     // We can get the author from the jwt like this
@@ -70,13 +77,19 @@ public class ChatController {
         .putBody(BODY_MESSAGE, "invalid room");
     }
 
-    // TODO: check the validity of the attachment base64 string
-
     final Attachment attachment = new Attachment()
       .setType("image/png")
-      .setName("test.png")
-      .setBase64(attachmentData);
+      .setName("test.png");
 
+    try{
+      Base64.Decoder decoder = Base64.getDecoder();
+      decoder.decode(attachmentData);
+      attachment.setBase64(attachmentData);
+    } catch(IllegalArgumentException e){
+      return response
+        .setType(CHAT_ERROR_INVALID_ATTACHMENT)
+        .putBody(BODY_MESSAGE, "Decoding string to base64 failed. Invalid attachment.");
+    }
     final Message message = new Message()
       .setRoom(room)
       .setContent(content)
