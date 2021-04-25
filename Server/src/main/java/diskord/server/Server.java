@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
-import diskord.server.channel.Channel;
 import diskord.server.database.DatabaseManager;
-import diskord.server.database.user.User;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -41,51 +39,46 @@ public abstract class Server implements Runnable {
     this.dbManager = dbManager;
   }
 
-  public void init() throws IOException {
-    // Setting up selector and server socket channel
-    selector = SelectorProvider.provider().openSelector();
-
-    serverSocketChannel = ServerSocketChannel.open();
-    serverSocketChannel.configureBlocking(false);
-
-    serverSocketChannel.socket().bind(socketAddress);
-    // serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
-    final int validOps = serverSocketChannel.validOps();
-    serverSocketChannel.register(selector, validOps);
-  }
-
   @Override
   public void run() {
     try {
-      init();
+      selector = SelectorProvider.provider().openSelector();
+      try (final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
+        serverSocketChannel.configureBlocking(false);
+        serverSocketChannel.bind(socketAddress);
 
-      logger.info("server has started");
+        final int validOps = serverSocketChannel.validOps();
+        serverSocketChannel.register(selector, validOps, null);
 
-      // Use Thread#interrupt to kill the server.
-      while (!Thread.currentThread().isInterrupted()) {
-        selector.select();
+        logger.info("server has started");
 
-        final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
+        // Use Thread#interrupt to kill the server.
+        while (!Thread.currentThread().isInterrupted()) {
+          selector.select();
 
-        while (keys.hasNext()) {
-          final SelectionKey key = keys.next();
-          keys.remove();
+          final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
 
-          if (!key.isValid()) continue;
+          while (keys.hasNext()) {
+            final SelectionKey key = keys.next();
+            keys.remove();
 
-          try {
-            if (key.isAcceptable()) accept(key);
-            if (key.isReadable()) read(key);
-            if (key.isWritable() && !socketMap.get((SocketChannel) key.channel()).isEmpty()) write(key);
-          } catch (final Exception e) {
-            System.out.println(e);
+            if (!key.isValid()) continue;
+
+            try {
+              if (key.isAcceptable()) accept(key);
+              if (key.isReadable()) read(key);
+              if (key.isWritable()) write(key);
+            } catch (final Exception e) {
+              System.out.println(e);
+            }
           }
         }
+      } catch (final IOException e) {
+        System.out.println("error");
+//      throw new UncheckedIOException(e);
       }
     } catch (final IOException e) {
-      System.out.println("error");
-//      throw new UncheckedIOException(e);
+      e.printStackTrace();
     }
   }
 
@@ -113,8 +106,8 @@ public abstract class Server implements Runnable {
   }
 
   private void accept(final SelectionKey key) throws IOException {
-//    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-    final SocketChannel channel = serverSocketChannel.accept();
+    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
+    final SocketChannel channel = serverChannel.accept();
     channel.configureBlocking(false);
 
     final Socket socket = channel.socket();
@@ -188,6 +181,8 @@ public abstract class Server implements Runnable {
     logger.info(() -> String.format("writing %s%n to %s", buffer, channel));
 
     channel.write(buffer);
+
+    channel.register(selector, SelectionKey.OP_READ);
   }
 
   private ByteBuffer payloadToByteBuffer(final Payload payload) throws JsonProcessingException {
