@@ -1,8 +1,6 @@
 package diskord.client;
-
-import diskord.client.payload.Payload;
-import diskord.client.payload.PayloadType;
-import javafx.scene.image.Image;
+import diskord.payload.Payload;
+import diskord.payload.PayloadType;
 
 import java.util.UUID;
 

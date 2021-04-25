@@ -4,9 +4,10 @@ import diskord.client.ServerConnection;
 import diskord.client.TestData;
 import diskord.client.User;
 import diskord.client.Utils;
-import diskord.client.payload.Payload;
-import diskord.client.payload.PayloadBody;
-import diskord.client.payload.PayloadType;
+
+import diskord.payload.Payload;
+import diskord.payload.PayloadBody;
+import diskord.payload.PayloadType;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;

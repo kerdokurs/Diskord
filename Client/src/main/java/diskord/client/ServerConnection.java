@@ -1,7 +1,7 @@
 package diskord.client;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import diskord.client.payload.Payload;
+import diskord.payload.Payload;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -13,9 +13,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 
 public class ServerConnection implements Runnable {
     private final InetSocketAddress address;

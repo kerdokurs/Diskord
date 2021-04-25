@@ -2,9 +2,9 @@ package diskord.client.controllers;
 
 import diskord.client.ServerConnection;
 import diskord.client.TestData;
-import diskord.client.payload.Payload;
-import diskord.client.payload.PayloadBody;
-import diskord.client.payload.PayloadType;
+import diskord.payload.Payload;
+import diskord.payload.PayloadBody;
+import diskord.payload.PayloadType;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
