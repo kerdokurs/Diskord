@@ -1,8 +1,15 @@
 package diskord.server.controllers;
 
+import com.auth0.jwt.exceptions.JWTVerificationException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import diskord.payload.Payload;
+import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+import diskord.server.crypto.Auth;
+import diskord.server.database.DatabaseManager;
+import diskord.server.database.channel.Channel;
 import diskord.server.database.room.Room;
+import diskord.server.database.transactions.ChannelTransactions;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,5 +31,30 @@ public class RoomController {
           .setDescription("Test 2 server")
           .setIcon("ousdhfouih")
       ));
+  }
+
+  public static Payload handleChannelsInfo(final DatabaseManager dbManager, final Payload request) {
+    final PayloadBody body = request.getBody();
+    final String roomId = (String) body.get("room_id");
+    final UUID roomUuid = UUID.fromString(roomId);
+
+    final String authToken = (String) body.get("token");
+
+    final DecodedJWT token;
+    try {
+      token = Auth.decode(authToken); // TODO: use token
+    } catch (final JWTVerificationException e) {
+      return new Payload()
+        .setType(PayloadType.AUTH_ERROR)
+        .setResponseTo(request.getId())
+        .putBody(PayloadBody.BODY_MESSAGE, "invalid token");
+    }
+
+    final List<Channel> channels = ChannelTransactions.getChannelsByRoomId(dbManager, roomUuid);
+
+    return new Payload()
+      .setType(PayloadType.INFO_CHANNELS)
+      .setResponseTo(request.getId())
+      .putBody("channels", channels);
   }
 }
