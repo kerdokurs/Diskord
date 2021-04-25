@@ -1,4 +1,4 @@
-package diskord.payload;
+package diskord.client.payload;
 
 import java.io.Serializable;
 import java.util.HashMap;

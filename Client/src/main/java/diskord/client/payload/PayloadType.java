@@ -1,4 +1,4 @@
-package diskord.payload;
+package diskord.client.payload;
 
 // Tegemist on payloadi tüübiga, mis määrab ära, mida tegema peab
 public enum PayloadType {
@@ -17,5 +17,6 @@ public enum PayloadType {
   LOGIN_ERROR,
 
   REGISTER,
+  REGISTER_OK,
   REGISTER_ERROR,
 }

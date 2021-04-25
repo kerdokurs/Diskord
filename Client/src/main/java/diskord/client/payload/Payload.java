@@ -1,4 +1,4 @@
-package diskord.payload;
+package diskord.client.payload;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -7,13 +7,9 @@ import lombok.Setter;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.UUID;
 
 public class Payload implements Serializable {
-  // Hoiustame mapperi, et seda mitte iga kord, kui vaja deserialiseerida, luua.
-  public static final ObjectMapper mapper = new ObjectMapper();
-
   @Getter
   @Setter
   private PayloadType type;
@@ -43,13 +39,14 @@ public class Payload implements Serializable {
   public Payload() {
     timestamp = new Date();
     body = new PayloadBody();
+    id = UUID.randomUUID();
   }
 
-  public static Payload fromJson(final String json) throws JsonProcessingException {
+  public static Payload fromJson(final ObjectMapper mapper, final String json) throws JsonProcessingException {
     return mapper.readValue(json, Payload.class);
   }
 
-  public String toJson() throws JsonProcessingException {
+  public String toJson(final ObjectMapper mapper) throws JsonProcessingException {
     return mapper.writeValueAsString(this);
   }
 
@@ -60,13 +57,13 @@ public class Payload implements Serializable {
 
   @Override
   public String toString() {
-    return "Payload{" +
-      "type=" + type +
-      ", id=" + id +
-      ", responseTo=" + responseTo +
-      ", timestamp=" + timestamp +
-      ", jwt='" + jwt + '\'' +
-      ", body=" + body +
-      '}';
+    return "diskord.payload.Payload{" +
+            "type=" + type +
+            ", id=" + id +
+            ", responseTo=" + responseTo +
+            ", timestamp=" + timestamp +
+            ", jwt='" + jwt + '\'' +
+            ", body=" + body +
+            '}';
   }
 }
