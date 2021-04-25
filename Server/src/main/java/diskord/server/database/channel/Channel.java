@@ -38,7 +38,8 @@ public class Channel {
   private Room room;
 
   @Getter
-  private Date createdAt = new Date();
+  @Setter
+  private Date createdAt;
 
   public Channel() {
   }
