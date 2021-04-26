@@ -4,21 +4,22 @@ package diskord.payload;
 public enum PayloadType {
   BINK, // ping, aga meie ikooniga sobivas kirjastiilis.
   BONK,
-  MSG,
   JOIN,
   LEAVE,
 
   INFO,
+  INFO_SERVERS,
+  INFO_CHANNELS,
 
   INVALID,
 
   AUTH_ERROR,
 
-  CHAT_OK,
-  CHAT_ERROR,
-  CHAT_ERROR_EMPTY,
-  CHAT_ERROR_TOOLONG,
-  CHAT_ERROR_INVALID_ATTACHMENT,
+  MSG,
+  MSG_OK,
+  MSG_ERROR,
+
+  ATTACHMENT_ERROR,
 
   LOGIN,
   LOGIN_OK,

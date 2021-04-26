@@ -8,20 +8,15 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.controllers.ControllerRegister">
+<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="300.0" prefWidth="300.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerRegister">
    <children>
       <ImageView fitHeight="55.0" fitWidth="224.0" layoutX="38.0" layoutY="29.0" pickOnBounds="true" preserveRatio="true">
          <image>
             <Image url="@diskord.PNG" />
          </image>
       </ImageView>
-      <TextField fx:id="fxTextFieldUsername" layoutX="56.0" layoutY="93.0" minHeight="-Infinity" minWidth="-Infinity" onKeyTyped="#fxEventTextFieldUsernameOnKeyTyped" prefHeight="25.0" prefWidth="188.0" promptText="Username" />
+      <TextField fx:id="fxTextFieldUsername" layoutX="56.0" layoutY="93.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="25.0" prefWidth="188.0" promptText="Username" />
       <TextField fx:id="fxTextFieldPassword" layoutX="56.0" layoutY="138.0" onKeyTyped="#fxEventTextFieldPasswordOnKeyTyped" prefHeight="25.0" prefWidth="188.0" promptText="Password (min length 5)" />
-      <Label fx:id="fxLabelUsernameValid" layoutX="28.0" layoutY="97.0" prefHeight="17.0" prefWidth="21.0" textFill="#00cd00">
-         <font>
-            <Font name="System Bold" size="12.0" />
-         </font>
-      </Label>
       <Label fx:id="fxLabelPasswordValid" layoutX="28.0" layoutY="184.0" prefHeight="17.0" prefWidth="21.0">
          <font>
             <Font name="System Bold" size="12.0" />

@@ -3,6 +3,7 @@ package diskord.server.crypto;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
 import javax.validation.constraints.NotNull;
@@ -22,7 +23,7 @@ public class Auth {
       .sign(algorithm);
   }
 
-  public static DecodedJWT decode(@NotNull final String token) {
+  public static DecodedJWT decode(@NotNull final String token) throws JWTVerificationException {
     return verifier.verify(token);
   }
 }

@@ -1,7 +1,7 @@
 package diskord.server.database.message;
 
 import diskord.server.database.attachment.Attachment;
-import diskord.server.database.room.Room;
+import diskord.server.database.channel.Channel;
 import diskord.server.database.user.User;
 import lombok.Getter;
 import lombok.Setter;
@@ -42,8 +42,8 @@ public class Message {
   @Getter
   @Setter
   @ManyToOne
-  @JoinColumn(name = "room")
-  private Room room;
+  @JoinColumn(name = "channel")
+  private Channel channel;
 
   @Getter
   @Setter
@@ -67,7 +67,7 @@ public class Message {
       "id=" + id +
       ", content='" + content + '\'' +
       ", attachment='" + attachment + '\'' +
-      ", room=" + room +
+      ", channel=" + channel +
       ", author=" + author +
       ", timestamp=" + timestamp +
       '}';
