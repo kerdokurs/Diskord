@@ -2,10 +2,11 @@ package diskord.server.init;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
-import diskord.server.controllers.AuthenticationController;
-import diskord.server.controllers.ChatController;
-import diskord.server.controllers.RoomController;
+import diskord.payload.PayloadType;
 import diskord.server.database.DatabaseManager;
+import diskord.server.handlers.Handler;
+import diskord.server.handlers.LoginHandler;
+import diskord.server.handlers.RegisterHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -15,6 +16,9 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.security.InvalidParameterException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
@@ -27,8 +31,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private final DatabaseManager dbManager;
   private final ObjectMapper mapper = new ObjectMapper();
 
+  private final Map<PayloadType, Handler> handlers = new HashMap<>();
+
   public ServerHandler() {
     dbManager = new DatabaseManager();
+
+    registerHandler(LOGIN, new LoginHandler(dbManager));
+    registerHandler(REGISTER, new RegisterHandler(dbManager));
   }
 
   @Override
@@ -72,24 +81,32 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     final Payload request = Payload.fromJson(mapper, s);
     final Payload response;
 
-    // handling request
-    switch (request.getType()) {
-      case BINK:
-        response = new Payload()
-          .setType(BONK);
-        break;
-      case LOGIN:
-        response = AuthenticationController.handleSignIn(dbManager, request);
-        break;
-      case REGISTER:
-        response = AuthenticationController.handleSignUp(dbManager, request);
-        break;
-      case MSG:
-        response = ChatController.handleMessage(dbManager, request);
-        break;
-      default:
-        response = handleInvalidRequest(request);
+    final Handler handler = handlers.get(request.getType());
+
+    if (handler != null) {
+      response = handler.handleRequest(request);
+    } else {
+      response = unhandledPayload(request);
     }
+
+    // handling request
+//    switch (request.getType()) {
+//      case BINK:
+//        response = new Payload()
+//          .setType(BONK);
+//        break;
+//      case LOGIN:
+//        response = AuthenticationController.handleSignIn(dbManager, request);
+//        break;
+//      case REGISTER:
+//        response = AuthenticationController.handleSignUp(dbManager, request);
+//        break;
+//      case MSG:
+//        response = ChatController.handleMessage(dbManager, request);
+//        break;
+//      default:
+//        response = handleInvalidRequest(request);
+//    }
 
     // TODO: otsustada, mida responseiga teha
 
@@ -101,10 +118,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     }
   }
 
-  private Payload handleInvalidRequest(final Payload request) {
+  private Payload unhandledPayload(final Payload request) {
     return new Payload()
       .setType(INVALID)
       .setResponseTo(request.getId())
       .putBody(BODY_MESSAGE, BODY_INVALID);
+  }
+
+  public void registerHandler(final PayloadType type, final Handler handler) {
+    if (handlers.get(type) != null)
+      throw new InvalidParameterException(String.format("A handler already exists with type %s.", type));
+
+    handlers.put(type, handler);
   }
 }
