@@ -44,7 +44,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   public void handlerAdded(final ChannelHandlerContext ctx) throws Exception {
     Channel incoming = ctx.channel();
 
-    logger.info(() -> String.format("incoming connection from %s", incoming));
+    logger.info("incoming connection from {}", incoming);
 
     for (Channel channel : channels) {
       channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
@@ -63,7 +63,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   public void handlerRemoved(final ChannelHandlerContext ctx) throws Exception {
     Channel incoming = ctx.channel();
 
-    logger.info(() -> String.format("%s has disconnected", incoming));
+    logger.info("{} has disconnected", incoming);
 
     for (Channel channel : channels) {
       channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
@@ -76,7 +76,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   protected void channelRead0(final ChannelHandlerContext ctx, final String s) throws Exception {
     Channel incoming = ctx.channel();
 
-    logger.info(() -> String.format("%s: %s", incoming, s));
+    logger.info("{}: {}", incoming, s);
 
     final Payload request = Payload.fromJson(mapper, s);
     final Payload response;
@@ -102,7 +102,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   @Override
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
     // TODO: What to do with the caught exception?
-    logger.error(() -> "Exception has been caught", cause);
+    logger.error("Exception has been caught", cause);
     ctx.close();
   }
 
