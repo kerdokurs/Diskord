@@ -4,7 +4,6 @@ import diskord.server.database.DatabaseManager;
 import diskord.server.database.channel.Channel;
 import diskord.server.database.room.Room;
 
-import javax.validation.constraints.NotNull;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -22,9 +21,9 @@ public class ChannelTransactions {
   }
 
   public static Channel createChannel(
-    @NotNull final DatabaseManager dbManager,
-    @NotNull final String name,
-    @NotNull final Room room
+    final DatabaseManager dbManager,
+    final String name,
+    final Room room
   ) {
     final Channel channel = new Channel()
       .setName(name)

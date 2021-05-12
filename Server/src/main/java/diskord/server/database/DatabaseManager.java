@@ -4,7 +4,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
 import javax.persistence.Persistence;
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 public class DatabaseManager {
@@ -12,13 +11,14 @@ public class DatabaseManager {
 
   public DatabaseManager() {
     factory = Persistence.createEntityManagerFactory("DiskordServer.database");
+    System.out.println("db manager has been initialized");
   }
 
   public void close() {
     factory.close();
   }
 
-  public <T, D> T getOne(@NotNull final Class<T> entityClass, @NotNull final D primaryKey) {
+  public <T, D> T getOne(final Class<T> entityClass, final D primaryKey) {
     return runTransaction(em -> em.find(entityClass, primaryKey));
   }
 
@@ -59,7 +59,7 @@ public class DatabaseManager {
    * @param <T> type of entity
    * @return boolean whether the entity was saved
    */
-  public <T> boolean save(@NotNull final T obj) {
+  public <T> boolean save(final T obj) {
     return runTransaction(em -> {
       final EntityTransaction et = em.getTransaction();
 
@@ -84,7 +84,7 @@ public class DatabaseManager {
    * @param <T> type of entity
    * @return boolean whether the entity was deleted
    */
-  public <T> boolean delete(@NotNull final T obj) {
+  public <T> boolean delete(final T obj) {
     return runTransaction(em -> delete(obj, em));
   }
 
@@ -98,7 +98,7 @@ public class DatabaseManager {
    * @param <T> type of entity
    * @return boolean whether the entity was deleted
    */
-  private <T> boolean delete(@NotNull final T obj, final EntityManager em) {
+  private <T> boolean delete(final T obj, final EntityManager em) {
     final EntityTransaction et = em.getTransaction();
 
     try {
@@ -123,7 +123,7 @@ public class DatabaseManager {
    * @param <D>         type of entity primary key
    * @return boolean whether the entity was deleted
    */
-  public <T, D> boolean deleteById(@NotNull final Class<T> entityClass, @NotNull final D id) {
+  public <T, D> boolean deleteById(final Class<T> entityClass, final D id) {
     return runTransaction(em -> {
       final T obj = getOne(entityClass, id);
       return delete(obj, em);

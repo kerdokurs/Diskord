@@ -1,5 +1,6 @@
 package diskord.server.newImpl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
 import io.netty.bootstrap.Bootstrap;
@@ -26,7 +27,7 @@ public class Client {
   }
 
   public static void main(String[] args) {
-    new Client("localhost", 9000).run();
+    new Client("localhost", 8192).run();
   }
 
   public void run() {
@@ -71,10 +72,18 @@ class ClientInitializer extends ChannelInitializer<SocketChannel> {
 }
 
 class ClientHandler extends SimpleChannelInboundHandler<String> {
+  // List<Controller> controllers;
+  // Map<UUID, Controller> controllers;
   @Override
   protected void channelRead0(final ChannelHandlerContext channelHandlerContext, final String s) throws Exception {
 //    final Payload payload = Payload.fromJson(new ObjectMapper(), s);
 //    System.out.println(payload);
     System.out.printf("received %s%n", s);
+    Payload payload = Payload.fromJson(new ObjectMapper(), s);
+    // controllers.handlePayload(payload);
+    // Controller c = controllers.get(payload.getResponseTo());
+    // if (c == null) defaultController.handlePayload(payload);
+    // c.handlePayload(payload);
+    // controllers.remove(payload.getResponseTo());
   }
 }

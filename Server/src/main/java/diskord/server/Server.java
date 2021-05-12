@@ -5,22 +5,29 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.apache.logging.log4j.LogManager;
 
 public class Server {
   private final int port;
 
-  public Server(final int port) {
+  public Server(int port) {
     this.port = port;
   }
 
-  public static void main(String[] args) {
-    final Server server = new Server(8192);
+  /**
+   * Main entry point
+   */
+  public static void main(final String[] args) throws InterruptedException {
+    Server server = new Server(8192);
     server.run();
   }
 
-  public void run() {
-    final EventLoopGroup bossGroup = new NioEventLoopGroup();
-    final EventLoopGroup workerGroup = new NioEventLoopGroup();
+  public void run() throws InterruptedException {
+    // Don't ask me what all of this does. All I know it
+    // just works. See netty.io docs if more interested.
+
+    EventLoopGroup bossGroup = new NioEventLoopGroup();
+    EventLoopGroup workerGroup = new NioEventLoopGroup();
 
     try {
       ServerBootstrap bootstrap = new ServerBootstrap()
@@ -29,9 +36,10 @@ public class Server {
         .childHandler(new ServerInitializer());
 
       bootstrap.bind(port).sync().channel().closeFuture().sync();
-    } catch (final InterruptedException e) {
-      // TODO: Handle
-      e.printStackTrace();
+    } catch (InterruptedException e) {
+      // TODO: Decide exactly what to do
+      LogManager.getLogger(getClass().getName()).error(() -> "InterruptException", e);
+      throw e;
     } finally {
       bossGroup.shutdownGracefully();
       workerGroup.shutdownGracefully();

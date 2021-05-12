@@ -2,14 +2,17 @@ package diskord.server.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
-import diskord.payload.PayloadType;
 import lombok.Getter;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Base64;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.SynchronousQueue;
 
@@ -41,18 +44,21 @@ public class Client {
 
   public static void main(String[] args) throws IOException, InterruptedException {
 //    System.out.println(Auth.encode("kerdo", Map.of()));
-    final InetSocketAddress address = new InetSocketAddress("localhost", 8192);
-    Client client = new Client(address);
+//    final InetSocketAddress address = new InetSocketAddress("localhost", 8192);
+//    Client client = new Client(address);
+//
+//    final Payload payload = new Payload().setType(PayloadType.LOGIN).putBody("username", "kerdo").putBody("password", "testing"); // demo reading a payload
+//
+//    for (int i = 0; i < 4; i++) {
+//      client.write(payload);
+//      System.out.println(client.read());
+//    }
+//
+//
+//    client.getChannel().close();
 
-    final Payload payload = new Payload().setType(PayloadType.LOGIN).putBody("username", "kerdo").putBody("password", "testing"); // demo reading a payload
-
-    for (int i = 0; i < 4; i++) {
-      client.write(payload);
-      System.out.println(client.read());
-    }
-
-
-    client.getChannel().close();
+    final byte[] data = Files.readAllBytes(Path.of("NALI.png"));
+    System.out.println(Base64.getEncoder().encodeToString(data));
   }
 
   public void run() {

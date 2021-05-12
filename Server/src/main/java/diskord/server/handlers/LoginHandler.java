@@ -6,12 +6,12 @@ import diskord.server.crypto.Auth;
 import diskord.server.crypto.Hash;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.transactions.UserTransactions;
-import diskord.server.database.user.Role;
 import diskord.server.database.user.User;
+import diskord.server.init.ServerHandler;
 import diskord.server.utils.CredentialValidator;
+import io.netty.channel.Channel;
 
 import javax.persistence.NoResultException;
-import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 import static diskord.payload.PayloadBody.*;
@@ -20,12 +20,12 @@ import static diskord.payload.PayloadType.LOGIN_OK;
 import static diskord.server.utils.credentials.CredentialConstraint.NULL_CONSTRAINT;
 
 public class LoginHandler extends Handler {
-  public LoginHandler(final DatabaseManager dbManager) {
-    super(dbManager);
+  public LoginHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
+    super(dbManager, serverHandler);
   }
 
   @Override
-  public Payload handleRequest(final @NotNull Payload request) {
+  public Payload handleRequest(final Payload request, final Channel channel) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 

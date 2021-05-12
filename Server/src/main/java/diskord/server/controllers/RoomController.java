@@ -12,10 +12,17 @@ import diskord.server.database.room.Room;
 import diskord.server.database.transactions.ChannelTransactions;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class RoomController {
   public static Payload handleServerInfoTest(final Payload payload) {
+    if (Objects.isNull(payload.getBody().get("token")))
+      return new Payload()
+        .setType(PayloadType.AUTH_ERROR)
+        .setResponseTo(payload.getId())
+        .putBody(PayloadBody.BODY_MESSAGE, "token not set");
+
     return new Payload()
       .setType(PayloadType.INFO_SERVERS)
       .setResponseTo(payload.getId())

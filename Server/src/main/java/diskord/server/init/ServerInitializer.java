@@ -9,8 +9,9 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
 public class ServerInitializer extends ChannelInitializer<SocketChannel> {
+  // Initializing the pipeline for a socket channel
   @Override
-  protected void initChannel(final SocketChannel socketChannel) throws Exception {
+  protected void initChannel(final SocketChannel socketChannel) {
     ChannelPipeline pipeline = socketChannel.pipeline();
 
     pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8912, Delimiters.lineDelimiter()));
