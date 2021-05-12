@@ -1,8 +1,12 @@
 package diskord.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import diskord.client.controllers.Controller;
 import diskord.payload.Payload;
+import javafx.stage.Stage;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,27 +15,37 @@ import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayDeque;
-import java.util.Deque;
+import java.util.*;
 
-public class ServerConnection implements Runnable {
+public class ServerConnection implements Runnable{
+
+    private List<Controller> listeners = new ArrayList<>();
+    private HashMap<UUID,Controller> listeners2 = new HashMap<>();
     private final InetSocketAddress address;
     private Logger logger = LogManager.getLogger(getClass().getName());
     private final ObjectMapper mapper = new ObjectMapper();
-
     private SocketChannel channel;
-
-    // should we have a blocking queue for handling the incoming payloads?
-    // if not, remove this.
     @Getter
     private Deque<Payload> payloadsToRecive = new ArrayDeque<>();
-
     @Getter
     private Deque<Payload> payloadsToSend = new ArrayDeque<>();
+
 
     // This should run on a new thread separate from the UI
     public ServerConnection(final InetSocketAddress address) {
         this.address = address;
+    }
+
+    /**
+     * Method that sends payload to server and adds listener for server response.
+     * @param payload The payload that is sent to server
+     * @param controller The controller that is called when server responds
+     * @throws IOException
+     */
+    public void writeWithResponse(Payload payload, Controller controller) throws IOException {
+        //TODO Handle IOException
+        listeners2.put(payload.getId(),controller);
+        write(payload);
     }
 
     @Override
@@ -47,10 +61,10 @@ public class ServerConnection implements Runnable {
                 // or wait for a read and for a write
                 //payloads.offer(read());
                 if(channel.isConnected()){
-                    if(!payloadsToSend.isEmpty()){
-                        write(payloadsToSend.poll());
-                    }
-                    payloadsToRecive.offer(read());
+                    final Payload payload = read();
+                    //TODO Handle return types.!
+                    listeners2.get(payload.getResponseTo()).handleResponse(payload);
+                    listeners2.remove(payload.getResponseTo());
                 }
             }
 
@@ -87,6 +101,7 @@ public class ServerConnection implements Runnable {
     }
 
     public void write(final Payload payload) throws IOException {
+
         write(payload.toJson(mapper).getBytes());
     }
 

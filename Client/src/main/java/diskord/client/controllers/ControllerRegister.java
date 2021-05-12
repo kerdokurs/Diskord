@@ -5,6 +5,8 @@ import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
@@ -18,9 +20,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
-public class ControllerRegister implements Initializable {
+public class ControllerRegister implements Controller{
     @FXML
     public Button fxButtonRegister;
     @FXML
@@ -40,9 +44,17 @@ public class ControllerRegister implements Initializable {
     ServerConnection serverConnection;
     boolean passwordValid = false;
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
+
+    public void init(){
+        // Add controller to serverConnection listener
+        //TODO fix server client connection
+        //serverConnection.addListener(this);
         fxLabelMessage.setAlignment(Pos.CENTER);
+    }
+
+    @FXML
+    public void exitApplication(ActionEvent event) {
+        Platform.exit();
     }
 
 
@@ -72,25 +84,13 @@ public class ControllerRegister implements Initializable {
      */
     public void fxEventButtonActionRegister() throws IOException, InterruptedException {
         if (passwordValid) {
-            //TODO Register client and get response code
+            // Register client and get response code
             Payload registerPayload = new Payload();
             registerPayload.setType(PayloadType.REGISTER);
             registerPayload.putBody("username",fxTextFieldUsername.getText());
             registerPayload.putBody("password",fxTextFieldPassword.getText());
             serverConnection.write(registerPayload);
 
-            Payload serverResponse = serverConnection.getPayloadsToRecive().poll();
-            switch (serverResponse.getType()) {
-                case REGISTER_OK:
-                    fxLabelMessage.setText("Account created!");
-                    fxLabelMessage.setTextFill(Color.rgb(0, 200, 0));
-                    break;
-                case REGISTER_ERROR:
-                    PayloadBody serverResponseBody = serverResponse.getBody();
-                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
-                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
-                    break;
-            }
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
@@ -136,6 +136,49 @@ public class ControllerRegister implements Initializable {
                 fxLabelPasswordValid.setTextFill(Color.rgb(200, 0, 0));
             }
         }
+    }
+
+    /**
+     * Method that handles servers response that is called from ServerConnection method
+     * @param response ServersResponse
+     */
+    @Override
+    public void handleResponse(Payload response){
+        switch (response.getType()){
+            case REGISTER_OK:
+
+                Platform.runLater(() -> {
+                    fxLabelMessage.setText("Account created!");
+                    fxLabelMessage.setTextFill(Color.rgb(0, 200, 0));
+                });
+
+                break;
+
+            case REGISTER_ERROR:
+                Platform.runLater(() -> {
+                    PayloadBody serverResponseBody = response.getBody();
+                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
+                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                });
+                break;
+
+            default:
+                Platform.runLater(() -> {
+                    PayloadBody serverResponseBody = response.getBody();
+                    fxLabelMessage.setText("Server sent unrecognisable payload type: " + response.getType());
+                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                });
+                break;
+        }
+    }
+    /**
+     * Method that returns set of accepted payloadTypes in controller
+     * @return
+     */
+    @Override
+    public Set<PayloadType> getListenTypes() {
+        return Stream.of(PayloadType.REGISTER_OK,PayloadType.REGISTER_ERROR)
+                .collect(Collectors.toSet());
     }
 }
 

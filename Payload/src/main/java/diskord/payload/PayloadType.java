@@ -9,6 +9,8 @@ public enum PayloadType {
   LEAVE,
 
   INFO,
+  INFO_SERVERS,
+  INFO_CHANNELS,
 
   INVALID,
 

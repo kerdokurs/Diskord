@@ -1,14 +1,10 @@
 package diskord.client.controllers;
 
-import diskord.client.ServerConnection;
-import diskord.client.TestData;
-import diskord.client.User;
-import diskord.client.Utils;
-
+import diskord.client.*;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
-import javafx.event.ActionEvent;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
@@ -22,14 +18,13 @@ import javafx.scene.control.TextField;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
-
 import java.io.*;
 import java.net.URL;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class ControllerLogin implements Initializable {
+public class ControllerLogin implements Controller {
     @FXML
     public Button fxButtonSignIn;
     @FXML
@@ -48,10 +43,12 @@ public class ControllerLogin implements Initializable {
     // Method vars
     Properties loginProperties;
     ServerConnection serverConnection;
-
     @SneakyThrows
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
+    public void init() {
+        // Add controller to serverConnections;
+        //TODO fix server client connection
+        //serverConnection.addListener(this);
+
         fxLabelLoginErrorMessage.setAlignment(Pos.CENTER);
         // Check if Diskord folder is created and write login properties to Appdata/diskord
         File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
@@ -106,26 +103,53 @@ public class ControllerLogin implements Initializable {
     /**
      * JavaFX event in Login scene. Method is called when Login button is clicked.
      * Method will attempt to login user. If not possible, it will notify user why login failed.
-     * @throws IOException Throws IOException when fxml file can not be loaded
      */
-    public void fxEventButtonActionSignIn() throws IOException, InterruptedException {
+    public void fxEventButtonActionSignIn() throws IOException {
         //Handle client login
         Payload loginPayload = new Payload();
         loginPayload.setType(PayloadType.LOGIN);
         loginPayload.putBody("username",fxTextFieldUsername.getText());
         loginPayload.putBody("password",fxTextFieldPassword.getText());
         serverConnection.write(loginPayload);
+    }
+
+    /**
+     * JavaFX event in Login scene. Method is called when Register button is clicked.
+     * Method opens register window.
+     * @throws IOException Throws IOException when fxml file can not be loaded
+     */
+    public void fxEventButtonActionRegister() throws IOException {
+        // Create stage for register window
+        Stage registerStage = new Stage();
+        // Set registerStage parent to current mainStage, so only registerStage can be clicked
+        registerStage.initModality(Modality.WINDOW_MODAL);
+        registerStage.initOwner(mainStage);
+        // Load fxml
+        FXMLLoader registerLoader = new FXMLLoader(getClass().getClassLoader().getResource("register.fxml"));
+        Parent registerRoot = (Parent)registerLoader.load();
+        ControllerRegister serverController = (ControllerRegister) registerLoader.getController();
+        // Pass main stage and serverConnection to new controller
+        serverController.setMainStage(registerStage);
+        serverController.setServerConnection(serverConnection);
+        serverController.init();
+        // Remove server controller from serverConnection when stage is closed
+        //TODO fix server client connection
+        //registerStage.setOnCloseRequest(e ->this.serverConnection.removeListener(serverController));
+        registerStage.setTitle("Register");
+        registerStage.setScene(new Scene(registerRoot));
+        registerStage.show();
+    }
 
 
-        //TODO Replace test data
-        //Payload serverResponse = TestData.getLoginData();
-        Payload serverResponse = null;
-        while ((serverResponse = serverConnection.getPayloadsToRecive().poll()) == null) {
-            Thread.sleep(200);
-        }
-        PayloadBody serverResponseBody = serverResponse.getBody();
-
-        switch (serverResponse.getType()){
+    /**
+     * Method that handles servers response that is called from ServerConnection method
+     * @param response ServersResponse
+     * @throws IOException
+     */
+    @Override
+    public void handleResponse(Payload response) throws IOException {
+        PayloadBody responseBody = response.getBody();
+        switch (response.getType()){
             case LOGIN_OK:
                 // Save current settings to properties
                 loginProperties.setProperty("saveUsername","True");
@@ -133,7 +157,7 @@ public class ControllerLogin implements Initializable {
 
                 if(fxCheckBoxRememberPassword.isSelected()){
                     loginProperties.setProperty("savePassword","True");
-                    loginProperties.setProperty("passwordToken",(String)serverResponseBody.get("token"));
+                    loginProperties.setProperty("passwordToken",(String)responseBody.get("token"));
                 }else{
                     loginProperties.setProperty("savePassword","False");
                     loginProperties.setProperty("passwordToken","null");
@@ -145,44 +169,49 @@ public class ControllerLogin implements Initializable {
                     loginProperties.storeToXML(fileOutputStream,"");
                 }
 
+                //TODO When server is fixed then sync responseBody key values
+
                 // Get current user from server response
-                User currentUser = new User(
-                        (String)serverResponseBody.get("username"),             // Username
-                        UUID.fromString((String)serverResponseBody.get("uuid")),// user UUID
-                        (String)serverResponseBody.get("userIconBase64"));      // User icon as base64 string
+                CurrentUser currentUser = new CurrentUser(
+                        (String)responseBody.get("username"),             // Username
+                        UUID.fromString((String)responseBody.get("uuid")),// user UUID
+                        (String)responseBody.get("token"),                // User webtoken
+                        (String)responseBody.get("role"),                 // user role
+                        (String)responseBody.get("userIconBase64"));      // User icon as base64 string
 
                 // Open main window
                 FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
                 Parent mainRoot = (Parent)mainLoader.load();
                 ControllerMain mainController = (ControllerMain) mainLoader.getController();
+                // Pass parameters to controllers
                 mainController.setMainStage(mainStage);
+                mainController.setCurrentUser(currentUser);
+                mainController.setServerConnection(serverConnection);
+                mainController.init();
                 mainStage.setTitle("Chat");
                 mainStage.setScene(new Scene(mainRoot));
                 mainStage.show();
-                return;
+                break;
             case LOGIN_ERROR:
-                fxLabelLoginErrorMessage.setText((String)serverResponseBody.get("message"));
+                // All FX interaction must be done in this
+                Platform.runLater(() -> fxLabelLoginErrorMessage.setText((String)responseBody.get("message")));
+
+                break;
+            default:
+                // Servers response was not expected
+                Platform.runLater(() -> fxLabelLoginErrorMessage.setText("Server sent unrecognisable payload type: " + response.getType()));
                 break;
         }
     }
 
     /**
-     * JavaFX event in Login scene. Method is called when Register button is clicked.
-     * Method opens register window.
-     * @throws IOException Throws IOException when fxml file can not be loaded
+     * Method that returns set of accepted payloadTypes in controller
+     * @return
      */
-    public void fxEventButtonActionRegister() throws IOException {
-        Stage registerStage = new Stage();
-        registerStage.initModality(Modality.WINDOW_MODAL);
-        registerStage.initOwner(mainStage);
-        FXMLLoader registerLoader = new FXMLLoader(getClass().getClassLoader().getResource("register.fxml"));
-        Parent registerRoot = (Parent)registerLoader.load();
-        ControllerRegister serverController = (ControllerRegister) registerLoader.getController();
-        serverController.setMainStage(registerStage);
-        serverController.setServerConnection(serverConnection);
-        registerStage.setTitle("Register");
-        registerStage.setScene(new Scene(registerRoot));
-        registerStage.show();
+    @Override
+    public Set<PayloadType> getListenTypes() {
+        return Stream.of(PayloadType.LOGIN_OK,PayloadType.LOGIN_ERROR)
+                .collect(Collectors.toSet());
     }
 }
 

@@ -65,6 +65,7 @@ public class AuthenticationController {
     try {
       // Trying to find existing user. When it's found alert user that the username
       // is already taken.
+      UserTransactions.getUserByUsername(dbManager,username);
       response
         .setType(REGISTER_ERROR)
         .setResponseTo(request.getId())
@@ -78,7 +79,7 @@ public class AuthenticationController {
       dbManager.save(user);
 
       // Creating jsonwebtoken for the logged in user
-      String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
+      String loginToken = Auth.encode(user.getUsername(), Map.of());
 
       // Responding with OK and token
       response
@@ -141,7 +142,7 @@ public class AuthenticationController {
       // Comparing the passwords
       if (user.getPassword().equals(hashedPassword)) {
         // Login was successful, generating jsonwebtoken
-        String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
+        String loginToken = Auth.encode(user.getUsername(), Map.of());
 
         // Populating response with proper data
         response

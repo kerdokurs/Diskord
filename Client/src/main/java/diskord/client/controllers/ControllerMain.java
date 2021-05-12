@@ -1,13 +1,13 @@
 package diskord.client.controllers;
 
-import diskord.client.ChatFile;
-import diskord.client.ServerConnection;
-import diskord.client.User;
+import diskord.client.*;
+import diskord.payload.Payload;
+import diskord.payload.PayloadBody;
+import diskord.payload.PayloadType;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
@@ -28,21 +28,24 @@ import lombok.SneakyThrows;
 
 import java.io.*;
 import java.math.BigInteger;
-import java.net.URL;
 import java.nio.file.Files;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public class ControllerMain implements Initializable {
+public class ControllerMain implements Controller{
 
     // FXML gui elements
     @FXML
     public ListView<listViewServerRow> fxListViewServers;
     @FXML
     public ListView<listViewChatRow> fxListViewChat;
+    @FXML
+    public ListView<listViewChannelRow> fxListViewChannel;
     @FXML
     public Label fxLabelChatStatus;
     @FXML
@@ -56,54 +59,66 @@ public class ControllerMain implements Initializable {
     @FXML
     public SplitPane fxSplitPane;
     @FXML
+    public ImageView fxImageViewCurrentUserIcon;
+    @FXML
+    public Label fxLabelCurrentUserName;
+
+    @FXML
     ObservableList<listViewServerRow> listViewServerData = FXCollections.observableArrayList();
     @FXML
     ObservableList<listViewChatRow> listViewChatData = FXCollections.observableArrayList();
+    @FXML
+    ObservableList<listViewChannelRow> listViewChannelData = FXCollections.observableArrayList();
     @FXML
     private Stage mainStage;
 
     // Controller objects
     File attachedFile;
-    User currentUser;
-    UUID currentChat;
+    CurrentUser currentUser;
+    UUID currentChatUuid;
     ServerConnection serverConnection;
 
+    // For testing purpose. This will replace all server interaction with test data
+    Boolean debugg = true;
     /**
      * Init method for ControllerMain
      */
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
-        // Set current client instance
-        //TODO Get current user UUID from server
-        currentUser = new User("test user", UUID.fromString("bf867bfc-9541-11eb-a8b3-0242ac130003"));
+    public void init() throws IOException {
+        // Add current controller to serverConnection listener
+        // TODO Server client connection
+        //serverConnection.addListener(this);
 
-        getAndSetUserSuscribedServers();
+        //Set current users icon and name to UI
+        if(debugg){
+            //TODO replace test data
+            fxLabelCurrentUserName.setText(TestData.currentUser().getUsername());
+            fxImageViewCurrentUserIcon.setImage(TestData.currentUser().getUserImage());
+        }else{
+            fxLabelCurrentUserName.setText(currentUser.getUsername());
+            fxImageViewCurrentUserIcon.setImage(currentUser.getUserImage());
+        }
 
-        getUsersIconsFromServer(currentChat);
+        // Get users subscribed servers
+        setUserSuscribedServers();
 
-        // Check if Diskord cache folder exists
-        File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
-        diskordDir.mkdir();
-        new File(diskordDir, "userIcons").mkdir();
-
-        //TODO Get all user profile icons from server
-
-
-
-        // Set ObservableList of custom listViewServerRows to fxListViewServer. This way when item is added to
-        // observable list, it gets added to UI
+        // Set ObservableList of custom listView Server/Channel/Chat Rows to fxListView Server/Channel/Chat.
+        // This way when item is added to observable list, it gets added to UI
         fxListViewServers.setItems(listViewServerData);
+        fxListViewChat.setItems(listViewChatData);
+        fxListViewChannel.setItems(listViewChannelData);
         // Create callback so when item is added, it will handle the new item with custom cell factory.
         fxListViewServers.setCellFactory(listView -> new CustomServerListViewCell());
-
-        // Set ObservableList of custom listViewChatRows to fxListViewChat. This way when item is added to
-        // observable list, it gets added to UI
-        fxListViewChat.setItems(listViewChatData);
-        // Create callback so when item is added, it will handle the new item with custom cell factory.
         fxListViewChat.setCellFactory(listView -> new CustomChatListViewCell());
-        // Set Server and Client Listview not selectable.
+        fxListViewChannel.setCellFactory(listView -> new CustomChannelListViewCell());
+
+        // Set Server,Channel and Client Listview not selectable.
         fxListViewServers.setFocusTraversable(false);
         fxListViewChat.setFocusTraversable(false);
+        fxListViewChannel.setFocusTraversable(false);
+
+        // Set Listview event handlers
+        fxListViewServers.setOnMouseClicked(event -> fxEventListViewServerOnMouseClicked());
+        fxListViewChannel.setOnMouseClicked(event -> fxEventListViewChannelOnMouseClicked());
 
         // Set fxTextAreaChatBox max character limit
         fxTextAreaChatBox.setTextFormatter(new TextFormatter<>(change ->
@@ -116,39 +131,62 @@ public class ControllerMain implements Initializable {
     ////////////////////////////////////////////////////////////////////////////////// Methods
 
     /**
-     * Method that gets all servers that user is suscribed to
+     * Method that handles servers response that is called from ServerConnection method
+     * @param response ServersResponse
+     * @throws IOException
      */
-    public void getAndSetUserSuscribedServers(){
-        //TODO Better method naming
+    public void handleResponse(Payload response){
+        PayloadBody responseBody = response.getBody();
+        switch (response.getType()){
+            case INFO_SERVERS:
+                //List<Server> servers = (List<Server>) responseBody.get("servers");
+                //for (Server server:servers) {
+                //    listViewServerData.add(
+                //            new listViewServerRow(
+                //                    server.getId(), // UUID
+                //                    server.getName(), // Name
+                //                    server.getDescription(), // Description
+                //                    server.getServerIconFromBase64())
+                //    );
+                //}
+                break;
 
-        //TODO Request user suscribed servers
+        }
+    }
 
-        //TODO Replace test data
+    /**
+     * Method that returns set of accepted payloadTypes in controller
+     * @return Set of accepted payloadTypes in controller
+     */
+    @Override
+    public Set<PayloadType> getListenTypes() {
+        return Stream.of(PayloadType.INFO_SERVERS,PayloadType.MSG)
+                .collect(Collectors.toSet());
+    }
 
-        // Currently for testing. Single server is in following String array format:
-        // 0 = Server UUID
-        // 1 = Server name
-        // 2 = Server description
-        // 3 = Server Icon in Base 64 (40x40)
+    /**
+     * Method that gets all servers that user is subscribed to
+     */
+    public void setUserSuscribedServers() throws IOException {
+        // Craft payload to get all servers
+        if(debugg){
+            //TODO replace test data
+            List<Server> servers = TestData.userSuscribedServers();
+            for (Server server:servers) {
+                listViewServerData.add(
+                        new listViewServerRow(
+                                server.getId(), // UUID
+                                server.getName(), // Name
+                                server.getDescription(), // Description
+                                server.getServerIconFromBase64(),
+                                server.getChannels()));
+            }
 
-        List<String[]> userSuscribedServers = new ArrayList<>();
-        String base64IconTest = "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAJySURBVFhH7Zi9dcIwEMdtSEFJSQlkAVYIEzACJSVTwAahw2QJYKLQhQ6agKIzPnI6naxzgAfJi977WbJ1H39LwpZJzcGY5BYlLeoLS62oH7b8C7y0PLzA4I/keOEiv9adB+O8LRbJc7eT1GupB1zv919yG01Zr9dJx/qk1hfqhdIvLzCCnNnrDEY1SqPRMIejdREwBavlyjSbTc+33W7nedAuhC/QXmy1Wl7AECzeGTiExFFAaDbP/AAFXgaoaIDdfs9NnH7eh2jEITATYhBLVCDrVvUDfBZ6vV5eDwYDs/3YmuFw6PSLQSxiBuo4zzLPhPbzPoTajEaj/OLmfeMYURt6nSJmgCGnzrBOUOhytXL6mOsZaiOtMVgC1Ib3I2KG6WTqOJch+QPSTVKhfAlQX0pwCDQiceokqtxkWZzwHBWEEpUFRbQiJV8kKvAalAmN3WgKB2v4sOV/u3Vp+QX7wZutwVhY3Ybzb04x3YCGqVmbbrXNqVToMycGvD/hlQVuWuCVl83n1t8GcJBzcNQCq+zvOLJIOQ9HJTAkLvQWkN4cvkjfTyIqUBKnew9PHB/AFSn7caIC+bZII+6EPVi4UBB5VYE0uF6cC59yuMZMPLBRSWDZ11cMGgfOWbcHNqICYUow8Gl6ZLsypO09M/HARlSg9IuMfctypO09M/HARlQgMB6PnQQUEBv6h0B6sOM6ZqYe2FAJ3O/23nfsT8GYJLwINlQCKdrvDIl89PhfLZ8MvF7kqyyQoh1Z5/FExQERgTfbD5rAdi8tsmHW9AiHUzsvcA7l6VTdbz+IoviNsPO7jeC5QPqaJZdR/xZoDvaQJF9nEvS0a9iLwwAAAABJRU5ErkJggg==";
-        String[] server1Test = new String[]{UUID.randomUUID().toString(), "Test Server 1", "Test server 1 description", base64IconTest};
-        String[] server2Test = new String[]{UUID.randomUUID().toString(), "Test Server 2", "Test server 2 description", base64IconTest};
-        userSuscribedServers.add(server1Test);
-        userSuscribedServers.add(server2Test);
-
-        for (String[] singleServer :userSuscribedServers) {
-            byte[] img = Base64.getDecoder().decode(singleServer[3]);
-            InputStream stream = new ByteArrayInputStream(img);
-            Image serverImage = new Image(stream, 40,40,true,true);
-            listViewServerData.add(
-                    new listViewServerRow(
-                            UUID.fromString(singleServer[0]), // UUID
-                            singleServer[1], // Name
-                            singleServer[2], // Description
-                            serverImage)
-            );
+        }else{
+            Payload serversRequest = new Payload();
+            serversRequest.setType(PayloadType.INFO_SERVERS);
+            serversRequest.putBody("token", currentUser.getUserToken());
+            serverConnection.write(serversRequest);
         }
 
     }
@@ -235,7 +273,7 @@ public class ControllerMain implements Initializable {
      * Method to set currentUser to controller.
      * @param currentUser
      */
-    public void setCurrentUser(User currentUser){
+    public void setCurrentUser(CurrentUser currentUser){
         this.currentUser = currentUser;
     }
 
@@ -247,16 +285,23 @@ public class ControllerMain implements Initializable {
         this.serverConnection = serverConnection;
     }
 
-    public void handleChatMessage(User currentUser, String message, String timeStamp, int dataType, ChatFile file){
+    /**
+     * Method adds chat info to fxListviewChat
+     * @param user user object from where the message came
+     * @param message The message that is displayed
+     * @param timeStamp When message was sent
+     * @param dataType The datatype of message
+     * @param file  ChatFileObject if datatype is file
+     */
+    public void handleChatMessage(User  user, String message, String timeStamp, int dataType, ChatFile file){
             listViewChatData.add(
                     new listViewChatRow(
-                            currentUser,
+                            user,
                             message,
                             timeStamp,
                             dataType,
                             file));
     }
-
 
     ////////////////////////////////////////////////////////////////////////////////// Events
 
@@ -361,9 +406,37 @@ public class ControllerMain implements Initializable {
         }
     }
 
-    //TODO Handle changing of servers
+    /**
+     * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
+     * Method changes fxListViewChannels to clicked server channels
+     */
     public void fxEventListViewServerOnMouseClicked() {
+        listViewServerRow clickedServer = fxListViewServers.getSelectionModel().getSelectedItem();
+        if(clickedServer != null){
+            // Clear current items in listview
+            fxListViewChannel.getItems().clear();
+            // Add new listview Channels
+            for (Channel channel: clickedServer.channels) {
+                listViewChannelData.add(
+                        new listViewChannelRow(
+                                channel.getName(),
+                                channel.getChannelIconFromBase64(),
+                                channel.getUuid()
+                ));
+            }
+        }
+    }
 
+    /**
+     * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
+     * Method changes fxListViewChannels to clicked server channels
+     */
+    public void fxEventListViewChannelOnMouseClicked() {
+        listViewChannelRow clickedChannel = fxListViewChannel.getSelectionModel().getSelectedItem();
+        if(clickedChannel != null){
+            currentChatUuid = clickedChannel.getUuid();
+            //TODO Get chats from channel with UUID
+        }
     }
 
     /**
@@ -458,13 +531,15 @@ public class ControllerMain implements Initializable {
         private String name;
         @Getter
         private String description;
-
-        public listViewServerRow(UUID uuid, String name, String description,Image image) {
+        @Getter
+        private List<Channel> channels;
+        public listViewServerRow(UUID uuid, String name, String description,Image image, List<Channel> channels) {
             super();
             this.uuid = uuid;
             this.name = name;
             this.description = description;
             this.image = image;
+            this.channels = channels;
         }
     }
 
@@ -505,7 +580,64 @@ public class ControllerMain implements Initializable {
     }
 
     /**
+     * Custom listViewRow class data class. This class holds channels name, UUID and image.
+     */
+    private static class listViewChannelRow {
+        @Getter
+        private UUID uuid;
+        @Getter
+        private Image image;
+        @Getter
+        private String name;
+
+        /**
+         * Custom listview row object for channel listview.
+         * @param name The name of the channel that is displayed
+         * @param image The Image of the channel that is displayed
+         * @param uuid The UUID of the channel.
+         */
+        public listViewChannelRow(String name, Image image, UUID uuid) {
+            super();
+            this.uuid = uuid;
+            this.name = name;
+            this.image = image;
+        }
+    }
+
+    /**
      * Custom Listview Listcell. It holds the content of single ListViewRow
+     */
+    private class CustomChannelListViewCell extends ListCell<listViewChannelRow> {
+        private HBox content;
+        private ImageView imageView;
+        private Text text;
+
+        /**
+         * Contstructor for CustomListCell. Define variables and set the layout of single cell
+         */
+        public CustomChannelListViewCell() {
+            super();
+            text = new Text();
+            imageView = new ImageView();
+            content = new HBox(imageView,text);
+            content.setSpacing(10);
+        }
+
+        @Override
+        protected void updateItem(listViewChannelRow item, boolean empty) {
+            super.updateItem(item, empty);
+            if (item != null && !empty) { // <== test for null item and empty parameter
+                imageView.setImage(item.getImage());
+                text.setText(item.getName());
+                setGraphic(content);
+            } else {
+                setGraphic(null);
+            }
+        }
+    }
+
+    /**
+     * Custom Listview Listcell for . It holds the content of single ListViewRow
      */
     private static class listViewChatRow {
         @Getter
@@ -541,7 +673,7 @@ public class ControllerMain implements Initializable {
     }
 
     /**
-     * Custom Listview Listcell. It holds the content of single ListViewRow
+     * Custom Listview Listcell for Chat. It holds the content of single ListViewRow
      */
     private class CustomChatListViewCell extends ListCell<listViewChatRow> {
         private final HBox content;
