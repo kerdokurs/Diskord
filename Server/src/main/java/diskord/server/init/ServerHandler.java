@@ -19,11 +19,11 @@ import org.apache.logging.log4j.Logger;
 import java.security.InvalidParameterException;
 import java.util.EnumMap;
 import java.util.Map;
-import java.util.Objects;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.*;
+import static diskord.payload.ResponseType.TO_SELF;
 
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
@@ -89,13 +89,18 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
       response = unhandledRequest(request);
     }
 
-    // TODO: otsustada, mida vastusega teha
-
-    for (Channel channel : channels) {
-      if (!Objects.equals(channel, incoming)) {
-        // nii saame kõigile laiali saata
-        channel.writeAndFlush("[" + incoming.remoteAddress() + "] " + s + "\n");
-      }
+    switch (response.getResponseType()) {
+      case TO_ALL:
+        sendAll(response, incoming);
+        break;
+      case TO_ONE:
+        // Reply-to a user type of payload
+        // TODO: Get the recipient
+        break;
+      case TO_SELF:
+      default:
+        send(incoming, response);
+        break;
     }
   }
 
@@ -116,7 +121,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     return new Payload()
       .setType(INVALID)
       .setResponseTo(request.getId())
-      .putBody(BODY_MESSAGE, BODY_INVALID);
+      .putBody(BODY_MESSAGE, BODY_INVALID)
+      .setResponseType(TO_SELF);
   }
 
   /**

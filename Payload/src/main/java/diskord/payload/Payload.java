@@ -36,6 +36,10 @@ public class Payload implements Serializable {
   @Setter
   private PayloadBody body;
 
+  @Getter
+  @Setter
+  private ResponseType responseType;
+
   public Payload() {
     timestamp = new Date();
     body = new PayloadBody();

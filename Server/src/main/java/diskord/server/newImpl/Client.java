@@ -48,7 +48,11 @@ public class Client {
           .setType(PayloadType.MSG)
           .putBody("message", line);
 
-        channel.writeAndFlush(payload + "\r\n");
+        ObjectMapper mapper = new ObjectMapper();
+
+        final String data = payload.toJson(mapper);
+        System.out.println(data);
+        channel.writeAndFlush(data + "\r\n");
       }
     } catch (final InterruptedException e) {
       e.printStackTrace();
