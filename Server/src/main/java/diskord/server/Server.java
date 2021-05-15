@@ -1,5 +1,6 @@
 package diskord.server;
 
+import diskord.server.database.DatabaseManager;
 import diskord.server.init.ServerInitializer;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.EventLoopGroup;
@@ -10,8 +11,11 @@ import org.apache.logging.log4j.LogManager;
 public class Server {
   private final int port;
 
+  private final DatabaseManager dbManager;
+
   public Server(int port) {
     this.port = port;
+    dbManager = new DatabaseManager();
   }
 
   /**
@@ -33,7 +37,7 @@ public class Server {
       ServerBootstrap bootstrap = new ServerBootstrap()
         .group(bossGroup, workerGroup)
         .channel(NioServerSocketChannel.class)
-        .childHandler(new ServerInitializer());
+        .childHandler(new ServerInitializer(dbManager));
 
       bootstrap.bind(port).sync().channel().closeFuture().sync();
     } catch (InterruptedException e) {
@@ -41,6 +45,7 @@ public class Server {
       LogManager.getLogger(getClass().getName()).error(() -> "InterruptException", e);
       throw e;
     } finally {
+      dbManager.close();
       bossGroup.shutdownGracefully();
       workerGroup.shutdownGracefully();
     }

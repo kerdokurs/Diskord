@@ -28,13 +28,13 @@ import static diskord.payload.PayloadType.*;
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
   private final Logger logger = LogManager.getLogger();
-  private final DatabaseManager dbManager; // TODO: close somewhere
+  private final DatabaseManager dbManager;
   private final ObjectMapper mapper = new ObjectMapper();
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
-  public ServerHandler() {
-    dbManager = new DatabaseManager();
+  public ServerHandler(final DatabaseManager dbManager) {
+    this.dbManager = dbManager;
 
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
@@ -159,7 +159,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @throws InvalidParameterException when a handler with the same type is already registered
    */
   public void registerHandler(final PayloadType type, final Handler handler) throws InvalidParameterException {
-    if (handlers.get(type) != null)
+    if (handlers.containsKey(type))
       throw new InvalidParameterException(String.format("A handler already exists with type %s.", type));
 
     handlers.put(type, handler);
@@ -172,7 +172,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @throws InvalidParameterException when type does not have any handlers
    */
   public void unregisterHandler(final PayloadType type) throws InvalidParameterException {
-    if (handlers.get(type) == null)
+    if (!handlers.containsKey(type))
       throw new InvalidParameterException(String.format("Handler with type %s is not registered", type));
 
     handlers.remove(type);

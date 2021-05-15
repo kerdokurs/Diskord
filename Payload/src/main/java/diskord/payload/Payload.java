@@ -51,7 +51,7 @@ public class Payload implements Serializable {
   }
 
   public Payload putBody(final String key, final Object value) {
-    getBody().put(key, value);
+    body.put(key, value);
     return this;
   }
 
