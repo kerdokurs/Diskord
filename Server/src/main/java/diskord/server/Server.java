@@ -1,228 +1,53 @@
 package diskord.server;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import diskord.payload.Payload;
-import diskord.payload.PayloadType;
 import diskord.server.database.DatabaseManager;
+import diskord.server.init.ServerInitializer;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
-import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.*;
+public class Server {
+  private final int port;
 
-public abstract class Server implements Runnable {
-  protected final Logger logger = LogManager.getLogger();
-  protected final DatabaseManager dbManager;
-  protected final InetSocketAddress socketAddress;
-  protected Selector selector;
-  protected ServerSocketChannel serverSocketChannel;
-  protected Map<SocketChannel, Queue<ByteBuffer>> socketMap = new HashMap<>();
-  protected ObjectMapper mapper = new ObjectMapper();
+  private final DatabaseManager dbManager;
+
+  public Server(int port) {
+    this.port = port;
+    dbManager = new DatabaseManager();
+  }
 
   /**
-   * @param port      port that the server should run on
-   * @param dbManager the only instance of database manager
+   * Main entry point
    */
-  protected Server(final int port, final DatabaseManager dbManager) {
-    socketAddress = new InetSocketAddress("localhost", port);
-    this.dbManager = dbManager;
+  public static void main(final String[] args) throws InterruptedException {
+    Server server = new Server(8192);
+    server.run();
   }
 
-  @Override
-  public void run() {
+  public void run() throws InterruptedException {
+    // Don't ask me what all of this does. All I know it
+    // just works. See netty.io docs if more interested.
+
+    EventLoopGroup bossGroup = new NioEventLoopGroup();
+    EventLoopGroup workerGroup = new NioEventLoopGroup();
+
     try {
-      selector = SelectorProvider.provider().openSelector();
-      try (final ServerSocketChannel serverSocketChannel = ServerSocketChannel.open()) {
-        serverSocketChannel.configureBlocking(false);
-        serverSocketChannel.bind(socketAddress);
+      ServerBootstrap bootstrap = new ServerBootstrap()
+        .group(bossGroup, workerGroup)
+        .channel(NioServerSocketChannel.class)
+        .childHandler(new ServerInitializer(dbManager));
 
-        final int validOps = serverSocketChannel.validOps();
-        serverSocketChannel.register(selector, validOps, null);
-
-        logger.info("server has started");
-
-        // Use Thread#interrupt to kill the server.
-        while (!Thread.currentThread().isInterrupted()) {
-          selector.select();
-
-          final Iterator<SelectionKey> keys = selector.selectedKeys().iterator();
-
-          while (keys.hasNext()) {
-            final SelectionKey key = keys.next();
-            keys.remove();
-
-            if (!key.isValid()) continue;
-
-            try {
-              if (key.isAcceptable()) accept(key);
-              if (key.isReadable()) read(key);
-              if (key.isWritable()) write(key);
-            } catch (final Exception e) {
-              System.out.println(e);
-            }
-          }
-        }
-      } catch (final IOException e) {
-        System.out.println("error");
-//      throw new UncheckedIOException(e);
-      }
-    } catch (final IOException e) {
-      e.printStackTrace();
-    }
-  }
-
-  // Does not work yet
-  // TODO: Fix.
-  public void stop() {
-    try {
-      logger.info("shutting server down");
-
-      for (final SocketChannel socketChannel : socketMap.keySet())
-        socketChannel.close();
-
-      serverSocketChannel.close();
-      selector.close();
-
-      // database manager must be closed after using it
+      bootstrap.bind(port).sync().channel().closeFuture().sync();
+    } catch (InterruptedException e) {
+      // TODO: Decide exactly what to do
+      LogManager.getLogger(getClass().getName()).error(() -> "InterruptException", e);
+      throw e;
+    } finally {
       dbManager.close();
-
-      Thread.currentThread().interrupt();
-
-      logger.info("server has shut down");
-    } catch (final Exception e) {
-      e.printStackTrace();
+      bossGroup.shutdownGracefully();
+      workerGroup.shutdownGracefully();
     }
-  }
-
-  private void accept(final SelectionKey key) throws IOException {
-    final ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
-    final SocketChannel channel = serverChannel.accept();
-    channel.configureBlocking(false);
-
-    final Socket socket = channel.socket();
-    final SocketAddress socketAddress = socket.getRemoteSocketAddress(); // TODO: See panna äkki mingisse klassi, mis hoiab endas ka kasutajat vms
-
-    logger.info(() -> String.format("connection from %s", socketAddress));
-
-    socketMap.put(channel, new ArrayDeque<>(10));
-    channel.register(selector, SelectionKey.OP_READ);
-  }
-
-  private void read(final SelectionKey key) throws IOException {
-    final SocketChannel channel = (SocketChannel) key.channel();
-    logger.info(() -> String.format("incoming data from %s", channel));
-
-    if (!channel.isOpen()) {
-      logger.warn("channel is closed, skipping");
-      return;
-    }
-
-    final ByteBuffer sizeBuffer = ByteBuffer.allocate(4); // allokeerime mälu payloadi pikkuse jaoks
-
-    int numRead = channel.read(sizeBuffer);
-
-    if (numRead == 0) return;
-
-    if (numRead == -1) {
-      final Socket socket = channel.socket();
-      final SocketAddress socketAddress = socket.getRemoteSocketAddress();
-
-      logger.info(String.format("%s disconnected", socketAddress));
-
-      channel.close();
-      key.cancel();
-
-      return;
-    }
-
-    sizeBuffer.flip();
-    final int dataSize = sizeBuffer.getInt();
-
-    final ByteBuffer jsonBuffer = ByteBuffer.allocate(dataSize);
-    channel.read(jsonBuffer);
-
-    jsonBuffer.flip();
-
-    final String jsonData = new String(jsonBuffer.array());
-    final Payload payload = Payload.fromJson(mapper, jsonData);
-
-    logger.info(() -> String.format("payload received: %s", payload));
-
-    final Payload response = handlePayload(payload);
-    final ByteBuffer buffer = payloadToByteBuffer(response);
-    socketMap.get(channel).add(buffer);
-    channel.register(selector, SelectionKey.OP_WRITE);
-  }
-
-  private void write(final SelectionKey key) throws IOException {
-    final SocketChannel channel = (SocketChannel) key.channel();
-    logger.info(() -> String.format("trying to write to %s", channel));
-
-    final Queue<ByteBuffer> buffers = socketMap.get(channel);
-    if (buffers == null || buffers.isEmpty()) return;
-
-    final ByteBuffer buffer = buffers.poll();
-
-    if (buffer == null) {
-      return;
-    }
-
-    logger.info(() -> String.format("writing %s%n to %s", buffer, channel));
-
-    channel.write(buffer);
-
-    channel.register(selector, SelectionKey.OP_READ);
-  }
-
-  private ByteBuffer payloadToByteBuffer(final Payload payload) throws JsonProcessingException {
-    final byte[] payloadData = payload.toJson(mapper).getBytes();
-    final int payloadSize = payloadData.length;
-
-    final ByteBuffer buffer = ByteBuffer.allocate(4 + payloadSize);
-    buffer.putInt(payloadSize);
-    buffer.put(payloadData);
-
-    buffer.flip();
-
-    return buffer;
-  }
-
-  protected abstract Payload handlePayload(final Payload payload);
-
-  protected Payload unhandledPayload(final Payload payload) {
-    return new Payload()
-      .setType(PayloadType.INVALID)
-      .setResponseTo(payload.getId())
-      .putBody("message", "unhandled payload");
-  }
-
-  /**
-   * Method for finding a port in a fixed range (if we don't want ServerSocket to choose its own)
-   *
-   * @param portRangeArray - int[]
-   * @return ServerSocket
-   * @throws IOException
-   */
-  public ServerSocket findAndCreateAvailablePort(int[] portRangeArray) throws IOException {
-    for (int port : portRangeArray) {//loops through a range of ints
-      try { //tries to create a port in the given index
-        return new ServerSocket(port);
-      } catch (IOException e) { //if port is allocated, continues to the next index in portRangeArray
-        continue;
-      }
-    }
-
-    throw new IOException("No free port found.");
   }
 }
