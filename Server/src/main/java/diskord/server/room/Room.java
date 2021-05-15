@@ -19,7 +19,8 @@ public class Room {
   private final String description;
   @Getter
   private final String iconBase64;
-
+  @Getter
+  private final String joinId;
   @Getter
   @Setter
   private List<Channel> channels = new ArrayList<>();
@@ -29,6 +30,7 @@ public class Room {
     this.name = name;
     this.description = description;
     this.iconBase64 = iconBase64;
+    this.joinId = id.toString().substring(0, 7);
   }
 
   public static List<Room> loadRooms(final DatabaseManager dbManager) {

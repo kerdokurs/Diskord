@@ -57,6 +57,7 @@ public class UserInfoServersHandler extends Handler{
         response
           .putBody("joined", joinedServers)
           .putBody("privileged", user.getPrivilegedServers());
+
       } catch (Exception e){
         return response
           .setType(INFO_USER_SERVERS_ERROR)
