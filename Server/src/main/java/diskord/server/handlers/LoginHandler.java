@@ -71,6 +71,7 @@ public class LoginHandler extends Handler {
         // Login was successful, generating jsonwebtoken
         String loginToken = Auth.encode(user.getUsername(), Map.of());
 
+        //username - Auth.decode(loginToken).getSubject();
         // Populating response with proper data
         response
           .setType(LOGIN_OK)

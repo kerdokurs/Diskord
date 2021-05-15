@@ -15,8 +15,7 @@ import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 import static diskord.payload.PayloadBody.*;
-import static diskord.payload.PayloadType.REGISTER_ERROR;
-import static diskord.payload.PayloadType.REGISTER_OK;
+import static diskord.payload.PayloadType.*;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
 import static diskord.server.utils.credentials.CredentialConstraint.TOO_LONG_CONSTRAINT;
 
@@ -92,6 +91,6 @@ public class RegisterHandler extends Handler {
         .putBody(BODY_TOKEN, loginToken);
     }
 
-    return response;
+    return response.setType(JOIN_SERVER_OK);
   }
 }

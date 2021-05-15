@@ -38,7 +38,6 @@ public class Server {
     // Don't ask me what all of this does. All I know it
     // just works. See netty.io docs if more interested.
     rooms = Room.loadRooms(dbManager);
-
     final EventLoopGroup bossGroup = new NioEventLoopGroup();
     final EventLoopGroup workerGroup = new NioEventLoopGroup();
 

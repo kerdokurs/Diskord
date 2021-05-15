@@ -37,4 +37,10 @@ public class Room {
   @Getter
   @Setter
   private String icon;
+
+  //TODO: Implement JoinId to make it easier for users to join a server.
+  //Client expects method "getJoinID"
+//  @Getter
+//  @Setter
+//  private String joinId;
 }

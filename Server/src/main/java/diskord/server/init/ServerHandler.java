@@ -5,9 +5,7 @@ import diskord.payload.Payload;
 import diskord.payload.PayloadType;
 import diskord.server.Server;
 import diskord.server.database.DatabaseManager;
-import diskord.server.handlers.Handler;
-import diskord.server.handlers.LoginHandler;
-import diskord.server.handlers.RegisterHandler;
+import diskord.server.handlers.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -42,6 +40,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
+    registerHandler(JOIN_SERVER, new JoinServerHandler(dbManager, this));
+    registerHandler(INFO_USER_SERVERS, new UserInfoServersHandler(dbManager, this));
   }
 
   @Override
