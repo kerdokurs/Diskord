@@ -42,6 +42,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
     registerHandler(JOIN_SERVER, new JoinServerHandler(dbManager, this));
     registerHandler(INFO_USER_SERVERS, new UserInfoServersHandler(dbManager, this));
+    registerHandler(INFO_CHANNELS, new InfoChannelsHandler(dbManager, this));
+
   }
 
   @Override

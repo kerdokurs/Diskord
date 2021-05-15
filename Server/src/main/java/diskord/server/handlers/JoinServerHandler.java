@@ -73,7 +73,6 @@ public class JoinServerHandler extends Handler{
       //error handle
     }
 
-
     return response;
   }
 }
