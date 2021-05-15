@@ -42,6 +42,7 @@
 <?import javafx.scene.control.SeparatorMenuItem?>
 <?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.TextArea?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Pane?>
@@ -102,7 +103,18 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="503.0" prefWidth="60.0" AnchorPane.bottomAnchor="7.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="184.0" AnchorPane.topAnchor="41.0" />
+                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="427.0" prefWidth="60.0" AnchorPane.bottomAnchor="83.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="184.0" AnchorPane.topAnchor="41.0" />
+                  <ImageView fx:id="fxImageViewCurrentUserIcon" fitHeight="60.0" fitWidth="60.0" layoutX="11.0" layoutY="483.0" pickOnBounds="true" preserveRatio="true" />
+                  <Label fx:id="fxLabelCurrentUserName" layoutX="81.0" layoutY="505.0" prefHeight="17.0" prefWidth="147.0" text="Label" />
+                  <ListView fx:id="fxListViewChannel" layoutX="81.0" layoutY="41.0" prefHeight="427.0" prefWidth="159.0" />
+                  <Label alignment="CENTER" layoutX="81.0" layoutY="14.0" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Channels" textAlignment="CENTER" wrapText="false">
+                     <font>
+                        <Font size="18.0" fx:id="x11" />
+                     </font>
+                     <textFill>
+                        <Color red="0.624" green="0.624" blue="0.624" fx:id="x21" />
+                     </textFill>
+                  </Label>
           </children>
         </AnchorPane>
       <AnchorPane id="Content" minHeight="-1.0" minWidth="-1.0" prefHeight="545.0" prefWidth="430.0" SplitPane.resizableWithParent="false">

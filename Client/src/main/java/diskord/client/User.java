@@ -2,6 +2,8 @@ package diskord.client;
 
 import javafx.scene.image.Image;
 import lombok.Getter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.util.Base64;
@@ -14,6 +16,8 @@ public class User {
     private final UUID userUUID;
     @Getter
     private final Image userImage;
+
+    private final Logger logger = LogManager.getLogger(getClass().getName());
 
     /**
      * User constructor that takes in username and user UUID
@@ -34,22 +38,29 @@ public class User {
      * @param imageBase64
      */
     public User(String username, UUID userUUID, String imageBase64){
+        Image userImage_;
         this.username = username;
         this.userUUID = userUUID;
-        byte[] img = Base64.getDecoder().decode(imageBase64);
-        InputStream stream = new ByteArrayInputStream(img);
-        this.userImage = new Image(stream, 40,40,true,true);
+        try{
+            byte[] img = Base64.getDecoder().decode(imageBase64);
+            InputStream stream = new ByteArrayInputStream(img);
+            userImage_ = new Image(stream, 40,40,true,true);
+        }catch (IllegalArgumentException err){
+            userImage_ = Utils.generateImage(40,40,1,1,1,1);
+            logger.error(err.getMessage());
+        }
+        this.userImage = userImage_;
     }
 
     /**
      * User constructor that takes in username, user UUID and user icon to use
      * @param username
-     * @param user
+     * @param userUUID
      * @param image
      */
-    public User(String username, UUID user,Image image) {
+    public User(String username, UUID userUUID,Image image) {
         this.username = username;
-        this.userUUID = user;
+        this.userUUID = userUUID;
         this.userImage = image;
     }
 
@@ -64,7 +75,16 @@ public class User {
                 return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
             }
         }catch (FileNotFoundException err){
+            logger.error(err.getMessage());
             return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "username='" + username + '\'' +
+                ", userUUID=" + userUUID +
+                '}';
     }
 }

@@ -5,22 +5,28 @@ import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
-import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URL;
+import java.nio.file.Files;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
-public class ControllerRegister implements Initializable {
+public class ControllerRegister implements Controller{
     @FXML
     public Button fxButtonRegister;
     @FXML
@@ -34,35 +40,21 @@ public class ControllerRegister implements Initializable {
     @FXML
     public Label fxLabelMessage;
     @FXML
-    private Stage mainStage;
+    public ImageView fxImageViewUserIcon;
+    @FXML
+    public Button fxButtonSelectIcon;
 
     // Method vars
-    ServerConnection serverConnection;
-    boolean passwordValid = false;
+    private Stage mainStage;
+    private ServerConnection serverConnection;
+    private boolean passwordValid = false;
+    private File userIconFile;
 
-    @Override
-    public void initialize(URL url, ResourceBundle resourceBundle) {
+    public void init(){
+        // Add controller to serverConnection listener
+        //TODO fix server client connection
+        //serverConnection.addListener(this);
         fxLabelMessage.setAlignment(Pos.CENTER);
-    }
-
-
-    /**
-     * Method to set original stage to controller. It is needed when child stages are created so parent stages
-     * can be passed on. It creates focus on child stage.
-     *
-     * @param stage Original stage that is first created.
-     */
-    public void setMainStage(Stage stage) {
-        this.mainStage = stage;
-    }
-
-    /**
-     * Method to pass servers connection to controller.
-     *
-     * @param serverConnection
-     */
-    public void setServerConnection(ServerConnection serverConnection) {
-        this.serverConnection = serverConnection;
     }
 
     /**
@@ -70,34 +62,49 @@ public class ControllerRegister implements Initializable {
      * is clicked. Method validates user input and then registers account. If account cant be
      * register by server side, it will notify user!
      */
-    public void fxEventButtonActionRegister() throws IOException, InterruptedException {
+    public void fxEventButtonActionRegister() throws IOException {
+        if(!userIconFile.exists()){
+            fxLabelMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelMessage.setText("User icon not found!");
+            return;
+        }
+
         if (passwordValid) {
-            //TODO Register client and get response code
+            // Register client and get response code
             Payload registerPayload = new Payload();
             registerPayload.setType(PayloadType.REGISTER);
             registerPayload.putBody("username",fxTextFieldUsername.getText());
             registerPayload.putBody("password",fxTextFieldPassword.getText());
-            serverConnection.write(registerPayload);
-
-            Payload serverResponse = serverConnection.getPayloadsToRecive().poll();
-            switch (serverResponse.getType()) {
-                case REGISTER_OK:
-                    fxLabelMessage.setText("Account created!");
-                    fxLabelMessage.setTextFill(Color.rgb(0, 200, 0));
-                    break;
-                case REGISTER_ERROR:
-                    PayloadBody serverResponseBody = serverResponse.getBody();
-                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
-                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
-                    break;
-            }
+            registerPayload.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            //serverConnection.write(registerPayload);
+            //TODO replace test data
+            handleResponse(TestData.getRegister());
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
         }
     }
 
-
+    /**
+     * JavaFX event in Register Scene. Method is called when select icon button
+     * is clicked. Method sets user selected icon to image view and stores the icon.
+     */
+    public void fxEventButtonSelectIcon() throws FileNotFoundException {
+        FileChooser fileChooser = new FileChooser();
+        // Allow only supported images to be selected
+        FileChooser.ExtensionFilter fileExtensions =
+                new FileChooser.ExtensionFilter("Images", "*.BMP", "*.GIF", "*.JPEG","*.PNG");
+        fileChooser.getExtensionFilters().setAll(fileExtensions);
+        fileChooser.setTitle("Select your icon!");
+        // Open file chooser in desktop folder
+        fileChooser.setInitialDirectory(new File(System.getProperty("user.home"), "Desktop"));
+        userIconFile = fileChooser.showOpenDialog(mainStage);
+        if(userIconFile.length() > 1250000){
+            fxLabelMessage.setText(userIconFile.getName() + " is larger than 10Mb!");
+            return;
+        }
+        fxImageViewUserIcon.setImage(new Image(new FileInputStream(userIconFile.getAbsolutePath())));
+    }
 
     /**
      * JavaFX event in Register Scene. Method is called when key is typed in
@@ -136,6 +143,76 @@ public class ControllerRegister implements Initializable {
                 fxLabelPasswordValid.setTextFill(Color.rgb(200, 0, 0));
             }
         }
+    }
+
+    /**
+     * Method that handles servers response that is called from ServerConnection method
+     * @param response ServersResponse
+     */
+    @Override
+    public void handleResponse(Payload response){
+        switch (response.getType()){
+            case REGISTER_OK:
+                Platform.runLater(() -> {
+                    fxLabelMessage.setText("Account created!");
+                    fxLabelMessage.setTextFill(Color.rgb(0, 200, 0));
+                });
+
+                break;
+
+            case REGISTER_ERROR:
+                Platform.runLater(() -> {
+                    PayloadBody serverResponseBody = response.getBody();
+                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
+                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                });
+                break;
+
+            default:
+                Platform.runLater(() -> {
+                    fxLabelMessage.setText("Server sent unrecognisable payload type: " + response.getType());
+                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                });
+                break;
+        }
+    }
+    /**
+     * Method that returns set of accepted payloadTypes in controller
+     * @return
+     */
+    @Override
+    public Set<PayloadType> getListenTypes() {
+        return Stream.of(PayloadType.REGISTER_OK,PayloadType.REGISTER_ERROR)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Method to set original stage to controller. It is needed when child stages are created so parent stages
+     * can be passed on. It creates focus on child stage.
+     *
+     * @param mainStage Original stage that is first created.
+     */
+    public void setMainStage(Stage mainStage) {
+        this.mainStage = mainStage;
+    }
+
+    /**
+     * Method to set parent controller. It is needed when one controller needs to access
+     * parent controllers elements
+     * @param controller Parent controller
+     */
+    @Override
+    public void setParentController(Controller controller) {
+        // Due to no need to access parent controller, do nothing
+    }
+
+    /**
+     * Method to pass servers connection to controller.
+     *
+     * @param serverConnection
+     */
+    public void setServerConnection(ServerConnection serverConnection) {
+        this.serverConnection = serverConnection;
     }
 }
 
