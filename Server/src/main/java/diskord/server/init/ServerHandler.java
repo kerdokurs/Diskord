@@ -3,6 +3,7 @@ package diskord.server.init;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
+import diskord.server.Server;
 import diskord.server.database.DatabaseManager;
 import diskord.server.handlers.Handler;
 import diskord.server.handlers.LoginHandler;
@@ -19,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 import java.security.InvalidParameterException;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
@@ -27,14 +29,16 @@ import static diskord.payload.ResponseType.TO_SELF;
 
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private static final ChannelGroup channels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
-  private final Logger logger = LogManager.getLogger();
+  private final Server server;
   private final DatabaseManager dbManager;
+  private final Logger logger = LogManager.getLogger();
   private final ObjectMapper mapper = new ObjectMapper();
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
-  public ServerHandler(final DatabaseManager dbManager) {
-    this.dbManager = dbManager;
+  public ServerHandler(final Server server) {
+    this.server = server;
+    dbManager = server.getDbManager();
 
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
@@ -146,6 +150,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     for (final Channel channel : channels)
       if (!channel.equals(ignore))
         send(channel, payload);
+  }
+
+  public void sendToServer(final Payload payload, final UUID serverId) {
+
   }
 
   /**

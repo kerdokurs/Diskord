@@ -1,5 +1,6 @@
 package diskord.server.init;
 
+import diskord.server.Server;
 import diskord.server.database.DatabaseManager;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
@@ -10,10 +11,10 @@ import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
 public class ServerInitializer extends ChannelInitializer<SocketChannel> {
-  private final DatabaseManager dbManager;
+  private final Server server;
 
-  public ServerInitializer(final DatabaseManager dbManager) {
-    this.dbManager = dbManager;
+  public ServerInitializer(final Server server) {
+    this.server = server;
   }
 
   // Initializing the pipeline for a socket channel
@@ -25,6 +26,6 @@ public class ServerInitializer extends ChannelInitializer<SocketChannel> {
     pipeline.addLast("encoder", new StringEncoder());
     pipeline.addLast("decoder", new StringDecoder());
 
-    pipeline.addLast("handler", new ServerHandler(dbManager));
+    pipeline.addLast("handler", new ServerHandler(server));
   }
 }

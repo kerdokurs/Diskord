@@ -31,6 +31,10 @@ public class Channel {
   @Setter
   private String name;
 
+  @Getter
+  @Setter
+  private String icon;
+
   @ManyToOne
   @JoinColumn(name = "room")
   @Getter
