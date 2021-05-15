@@ -27,26 +27,15 @@ public class Client extends Application {
     //serverThread.start();
 
     // Show login screen
-    //FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
-    //Parent loginRoot = (Parent)loginLoader.load();
-    //ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
-    //// Pass main stage and serverConnection to stage
-    //loginController.setMainStage(stage);
+    FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
+    Parent loginRoot = (Parent)loginLoader.load();
+    ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
+    // Pass main stage and serverConnection to stage
+    loginController.setMainStage(stage);
     //loginController.setServerConnection(serverConnection);
-    //loginController.init();
-    //stage.setTitle("Login");
-    //stage.setScene(new Scene(loginRoot));
-    //stage.show();
-
-    FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
-    Parent mainRoot = (Parent)mainLoader.load();
-    ControllerMain mainController = (ControllerMain) mainLoader.getController();
-// Pass main stage and serverConnection to stage
-    mainController.setMainStage(stage);
-   // mainController.setServerConnection(serverConnection);
-    mainController.init();
-    stage.setTitle("Main");
-    stage.setScene(new Scene(mainRoot));
+    loginController.init();
+    stage.setTitle("Login");
+    stage.setScene(new Scene(loginRoot));
     stage.show();
 
   }

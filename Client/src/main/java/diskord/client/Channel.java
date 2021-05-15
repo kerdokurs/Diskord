@@ -15,11 +15,14 @@ public class Channel {
     private final UUID uuid;
     @Getter
     private final String base64Icon;
+    @Getter
+    private final UUID serverUUID;
 
-    public Channel(String name, UUID uuid, String base64Icon) {
+    public Channel(String name, UUID uuid, String base64Icon,UUID serverUUID) {
         this.name = name;
         this.uuid = uuid;
         this.base64Icon = base64Icon;
+        this.serverUUID = serverUUID;
     }
 
     public Image getChannelIconFromBase64(){

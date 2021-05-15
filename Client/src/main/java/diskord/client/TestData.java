@@ -8,6 +8,19 @@ import java.util.List;
 import java.util.UUID;
 
 public class TestData {
+    // Main stage
+    public static List<User> getTestUsers(int numberOfUsers){
+        List<User> users = new ArrayList<>();
+        for (int i = 0; i< numberOfUsers; i++){
+            users.add(
+                    new User(
+                            "Test user: " + i,
+                            UUID.randomUUID(),
+                            base64Icon()));
+        }
+        return users;
+    }
+
     private static String base64Icon(){
         return  "iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAAAXNSR0IArs4c6QAA" +
                 "AARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAJySURBVFhH7Zi9" +
@@ -26,38 +39,87 @@ public class TestData {
                 "smHW9AiHUzsvcA7l6VTdbz+IoviNsPO7jeC5QPqaJZdR/xZoDvaQJF9nEvS0a9iL" +
                 "wwAAAABJRU5ErkJggg==";
     }
+
     public static User currentUser (){
         return new CurrentUser("test user",
                 UUID.fromString("0fde0c13-f951-450d-be81-4498f9118722"),
                 "user", base64Icon());
     }
-    public static List<Server> userSuscribedServers (){
-        List<Channel> channels = new ArrayList<>();
-        channels.add(new Channel("Test channel 1",
-                UUID.fromString("b760dbb0-d626-4579-8997-2d50037bb369"),
-                base64Icon()));
-        channels.add(new Channel("Test channel 2",
-                UUID.fromString("79e4a52b-6ab2-43b4-b142-2e12a0476c79"),
-                base64Icon()));
-        channels.add(new Channel("Test channel 3",
-                UUID.fromString("ba793031-f95b-445b-9f2f-2ddfe5b1cf20"),
-                base64Icon()));
+
+    public static Payload getUserSuscribedServers(){
+        Payload response = new Payload();
+        response.setType(PayloadType.INFO_SERVERS);
 
         List<Server> servers = new ArrayList<>();
         servers.add(new Server(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"),
                 "Test server1",
                 "Test desc",
                 base64Icon(),
-                channels));
+                null)); // Request server channels separately
+        response.putBody("servers", servers);
+        return response;
+    }
 
-        servers.add(new Server(UUID.fromString("2cb1257f-be39-4bb2-bc91-6fff1feff065"),
-                "Test server2",
-                "Test desc",
-                base64Icon(),channels));
-        servers.add(new Server(UUID.fromString("b4ba504a-3ac6-4d89-a3d7-82cf1330fbee"),
-                "Test server2",
-                "Test desc",
-                base64Icon(),channels));
-        return servers;
+    public static Payload getUserPrivilegedServers(){
+        Payload response = new Payload();
+        response.setType(PayloadType.INFO_USER_PRIVILEGED_SERVERS);
+        List<UUID> servers = new ArrayList<>();
+        servers.add(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"));
+        response.putBody("servers",servers);
+        return response;
+    }
+
+
+
+    public static Payload getServerChannels(UUID serverUUID){
+        Payload response = new Payload();
+        response.setType(PayloadType.INFO_CHANNELS);
+
+        List<Channel> channels = new ArrayList<>();
+        channels.add(new Channel("Test channel 1",
+                UUID.fromString("b760dbb0-d626-4579-8997-2d50037bb369"),
+                base64Icon(),
+                serverUUID));
+        channels.add(new Channel("Test channel 2",
+                UUID.fromString("79e4a52b-6ab2-43b4-b142-2e12a0476c79"),
+                base64Icon(),
+                serverUUID));
+        channels.add(new Channel("Test channel 3",
+                UUID.fromString("ba793031-f95b-445b-9f2f-2ddfe5b1cf20"),
+                base64Icon(),
+                serverUUID));
+        response.putBody("channels", channels);
+        return response;
+    }
+
+    public static Payload getServerRegistrationResponse(){
+        Payload response = new Payload();
+        response.setType(PayloadType.REGISTER_SERVER_OK);
+        return response;
+    }
+
+    public static Payload getChannelRegistrationResponse(){
+        Payload response = new Payload();
+        response.setType(PayloadType.REGISTER_CHANNEL_OK);
+        return response;
+    }
+
+    // Login
+    public static Payload getLogin(){
+        Payload response = new Payload();
+        response.setType(PayloadType.LOGIN_OK);
+        response.putBody("username", "TestCurrentUser");
+        response.putBody("uuid",UUID.randomUUID());
+        response.putBody("token", "TESTTOKEN");
+        response.putBody("icon", base64Icon());
+
+        return response;
+    }
+
+    // register
+    public static Payload getRegister(){
+        Payload response = new Payload();
+        response.setType(PayloadType.REGISTER_OK);
+        return response;
     }
 }
