@@ -1,14 +1,11 @@
 package diskord.client;
 
+
 import diskord.client.controllers.ControllerLogin;
 import diskord.client.controllers.ControllerMain;
-import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
 
-import java.io.IOException;
+import javafx.application.Application;
+import javafx.stage.Stage;
 import java.net.InetSocketAddress;
 
 
@@ -19,6 +16,7 @@ public class Client extends Application {
   }
 
   @Override
+
   public void start(final Stage stage) throws IOException {
     // Establish connection to server
     //TODO fix server client connection

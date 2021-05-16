@@ -8,8 +8,6 @@
 
     <class>diskord.server.database.user.User</class>
     <class>diskord.server.database.room.Room</class>
-    <class>diskord.server.database.message.Message</class>
-    <class>diskord.server.database.attachment.Attachment</class>
 
     <properties>
       <property name="hibernate.hbm2ddl.auto" value="update"/>

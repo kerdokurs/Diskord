@@ -5,6 +5,9 @@ import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+
+import diskord.payload.ResponseType;
+
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -51,9 +54,9 @@ public class ControllerRegister implements Controller{
     private File userIconFile;
 
     public void init(){
-        // Add controller to serverConnection listener
-        //TODO fix server client connection
-        //serverConnection.addListener(this);
+
+        // This controller does not need active listener from server connection
+
         fxLabelMessage.setAlignment(Pos.CENTER);
     }
 
@@ -63,7 +66,9 @@ public class ControllerRegister implements Controller{
      * register by server side, it will notify user!
      */
     public void fxEventButtonActionRegister() throws IOException {
-        if(!userIconFile.exists()){
+
+        if(userIconFile == null || !userIconFile.exists()){
+
             fxLabelMessage.setTextFill(Color.color(1, 0, 0));
             fxLabelMessage.setText("User icon not found!");
             return;
@@ -71,14 +76,17 @@ public class ControllerRegister implements Controller{
 
         if (passwordValid) {
             // Register client and get response code
-            Payload registerPayload = new Payload();
-            registerPayload.setType(PayloadType.REGISTER);
-            registerPayload.putBody("username",fxTextFieldUsername.getText());
-            registerPayload.putBody("password",fxTextFieldPassword.getText());
-            registerPayload.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
-            //serverConnection.write(registerPayload);
+
+            Payload request = new Payload();
+            request.setType(PayloadType.REGISTER);
+            request.putBody("username",fxTextFieldUsername.getText());
+            request.putBody("password",fxTextFieldPassword.getText());
+
+            //request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            serverConnection.writeWithResponse(request,this);
             //TODO replace test data
-            handleResponse(TestData.getRegister());
+            //handleResponse(TestData.getRegister());
+
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
@@ -163,15 +171,19 @@ public class ControllerRegister implements Controller{
             case REGISTER_ERROR:
                 Platform.runLater(() -> {
                     PayloadBody serverResponseBody = response.getBody();
-                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
+
                     fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
+
+
                 });
                 break;
 
             default:
                 Platform.runLater(() -> {
-                    fxLabelMessage.setText("Server sent unrecognisable payload type: " + response.getType());
-                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+
+
+
                 });
                 break;
         }

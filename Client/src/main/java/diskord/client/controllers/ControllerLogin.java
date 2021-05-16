@@ -11,7 +11,6 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.stage.Modality;
@@ -42,9 +41,8 @@ public class ControllerLogin implements Controller {
 
     @SneakyThrows
     public void init() {
-        // Add controller to serverConnections;
-        //TODO fix server client connection
-        //serverConnection.addListener(this);
+        // This controller does not need any passive listeners in
+
 
         fxLabelLoginErrorMessage.setAlignment(Pos.CENTER);
         // Check if Diskord folder is created and write login properties to Appdata/diskord
@@ -82,9 +80,11 @@ public class ControllerLogin implements Controller {
         loginPayload.setType(PayloadType.LOGIN);
         loginPayload.putBody("username",fxTextFieldUsername.getText());
         loginPayload.putBody("password",fxTextFieldPassword.getText());
-        //serverConnection.write(loginPayload);
+
+        serverConnection.writeWithResponse(loginPayload,this);
+
         //TODO replace test data
-        handleResponse(TestData.getLogin());
+        //handleResponse(TestData.getLogin());
     }
 
     /**
@@ -102,18 +102,19 @@ public class ControllerLogin implements Controller {
         FXMLLoader registerLoader = new FXMLLoader(getClass().getClassLoader().getResource("register.fxml"));
         Parent registerRoot = (Parent)registerLoader.load();
         ControllerRegister serverController = (ControllerRegister) registerLoader.getController();
+        // Make stage not resizable
+        registerStage.setResizable(false);
         // Pass main stage, parent controller and serverConnection to new controller
         serverController.setMainStage(mainStage);
         serverController.setServerConnection(serverConnection);
         serverController.setParentController(this);
-
         serverController.init();
-        // Remove server controller from serverConnection when stage is closed
-        //TODO fix server client connection
-        //registerStage.setOnCloseRequest(e ->this.serverConnection.removeListener(serverController));
         registerStage.setTitle("Register");
         registerStage.setScene(new Scene(registerRoot));
         registerStage.show();
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(registerStage);
+
     }
 
     /**
@@ -150,6 +151,10 @@ public class ControllerLogin implements Controller {
                 FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
                 Parent mainRoot = (Parent)mainLoader.load();
                 ControllerMain mainController = (ControllerMain) mainLoader.getController();
+
+
+                // Make stage not resizable
+                mainStage.setResizable(false);
 
                 // Pass parameters to controllers
                 mainController.setMainStage(mainStage);

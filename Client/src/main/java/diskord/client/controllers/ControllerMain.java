@@ -19,6 +19,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.*;
 import javafx.scene.image.Image;
@@ -29,10 +30,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.math.BigInteger;
+
 import java.nio.file.Files;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -44,10 +43,14 @@ public class ControllerMain implements Controller{
     // FXML gui elements
     @FXML
     public ListView<ListViewServerRow> fxListViewServers;
+
     @FXML
     public ListView<ListViewChatRow> fxListViewChat;
     @FXML
     public ListView<ListViewChannelRow> fxListViewChannel;
+    @FXML
+    public ListView<ListViewUsersRow> fxListViewUsers;
+
     @FXML
     public Label fxLabelChatStatus;
     @FXML
@@ -65,18 +68,26 @@ public class ControllerMain implements Controller{
     @FXML
     public Label fxLabelCurrentUserName;
 
+
     @FXML
     ObservableList<ListViewServerRow> listViewServerData = FXCollections.observableArrayList();
     @FXML
     ObservableList<ListViewChatRow> listViewChatData = FXCollections.observableArrayList();
+
     @FXML
     ObservableList<ListViewChannelRow> listViewChannelData = FXCollections.observableArrayList();
+    @FXML
+    ObservableList<ListViewUsersRow> listViewUsersData = FXCollections.observableArrayList();
+
     @FXML
     private Stage mainStage;
 
     // Controller objects
     File attachedFile;
     CurrentUser currentUser;
+
+    HashMap<UUID,User> currentChatUsers = new HashMap<>();
+
     UUID currentChatUuid;
     ServerConnection serverConnection;
     // For testing purpose. This will replace all server interaction with test data
@@ -87,38 +98,54 @@ public class ControllerMain implements Controller{
      */
     public void init() throws IOException {
         // Add current controller to serverConnection listener
-        //serverConnection.addListener(this);
+
+        serverConnection.addListener(this);
 
         //Set current users icon and name to UI
-        if(debugg){
-            //TODO replace test data
-            fxLabelCurrentUserName.setText(TestData.currentUser().getUsername());
-            fxImageViewCurrentUserIcon.setImage(TestData.currentUser().getUserImage());
-        }else{
-            fxLabelCurrentUserName.setText(currentUser.getUsername());
-            fxImageViewCurrentUserIcon.setImage(currentUser.getUserImage());
-        }
+        fxLabelCurrentUserName.setText(currentUser.getUsername());
+        fxImageViewCurrentUserIcon.setImage(currentUser.getUserImage());
+
         // Get users subscribed servers
         getUserSuscribedServers();
-        // Get user privileged servers
-        getUserPrivilegedServers();
-        getUsersIconsFromServer(UUID.randomUUID());
+
+
         // Set ObservableList of custom listView Server/Channel/Chat Rows to fxListView Server/Channel/Chat.
         // This way when item is added to observable list, it gets added to UI
         fxListViewServers.setItems(listViewServerData);
         fxListViewChat.setItems(listViewChatData);
         fxListViewChannel.setItems(listViewChannelData);
+
+        fxListViewUsers.setItems(listViewUsersData);
+
         // Create callback so when item is added, it will handle the new item with custom cell factory.
         fxListViewServers.setCellFactory(listView -> new CustomServerListViewCell());
         fxListViewChat.setCellFactory(listView -> new CustomChatListViewCell());
         fxListViewChannel.setCellFactory(listView -> new CustomChannelListViewCell());
-        // Set Server,Channel and Client Listview not selectable.
+
+        fxListViewUsers.setCellFactory(listView -> new CustomUsersListViewCell());
+        // Set Listviews not selectable.
         fxListViewServers.setFocusTraversable(false);
         fxListViewChat.setFocusTraversable(false);
         fxListViewChannel.setFocusTraversable(false);
+        fxListViewUsers.setFocusTraversable(false);
         // Set Listview event handlers
-        fxListViewServers.setOnMouseClicked(event -> fxEventListViewServerOnMouseClicked());
-        fxListViewChannel.setOnMouseClicked(event -> fxEventListViewChannelOnMouseClicked());
+        fxListViewServers.setOnMouseClicked(event -> {
+            try {
+                fxEventListViewServerOnMouseClicked();
+            } catch (IOException e) {
+                //TODO fix exception handling
+                throw new UncheckedIOException(e);
+            }
+        });
+        fxListViewChannel.setOnMouseClicked(event -> {
+            try {
+                fxEventListViewChannelOnMouseClicked();
+            } catch (IOException e) {
+                //TODO fix exception handling
+                throw new UncheckedIOException(e);
+            }
+        });
+
         // Set fxTextAreaChatBox max character limit
         fxTextAreaChatBox.setTextFormatter(new TextFormatter<>(change ->
                 change.getControlNewText().length() <= 100 ? change : null));
@@ -137,7 +164,16 @@ public class ControllerMain implements Controller{
         //                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid)
         //
         //        ));
-        serverMenuItem1.setOnAction(event -> fxEventListViewServersContextMenuJoinOnAction());
+
+        serverMenuItem1.setOnAction(event -> {
+            try {
+                fxEventListViewServersContextMenuJoinOnAction();
+            } catch (IOException e) {
+                //TODO fix throwing new exception
+                throw new UncheckedIOException(e);
+            }
+        });
+
         serverMenuItem2.setOnAction(event -> {
             try {
                 fxEventListViewServersContextMenuCreateOnAction();
@@ -153,10 +189,10 @@ public class ControllerMain implements Controller{
         fxListViewServers.setContextMenu(serverContextMenu);
 
         ContextMenu channelContextMenu = new ContextMenu();
-        MenuItem channelMenuItem1 = new MenuItem("Join");
+
         MenuItem channelMenuItem2 = new MenuItem("Create");
         MenuItem channelMenuItem3 = new MenuItem("Delete");
-        channelMenuItem1.setOnAction(event -> fxEventListViewChannelsContextMenuJoinOnAction());
+
         channelMenuItem2.setOnAction(event -> {
             try {
                 fxEventListViewChannelsContextMenuCreateOnAction();
@@ -166,7 +202,8 @@ public class ControllerMain implements Controller{
             }
         });
         channelMenuItem3.setOnAction(event -> fxEventListViewChannelsContextMenuDeleteOnAction());
-        channelContextMenu.getItems().add(channelMenuItem1);
+
+
         channelContextMenu.getItems().add(channelMenuItem2);
         channelContextMenu.getItems().add(channelMenuItem3);
         fxListViewChannel.setContextMenu(channelContextMenu);
@@ -186,20 +223,36 @@ public class ControllerMain implements Controller{
         logger.info(response.toString());
         PayloadBody responseBody = response.getBody();
         switch (response.getType()){
-            case INFO_SERVERS:
-                List<Server> servers = (List<Server>) responseBody.get("servers");
-                for (Server server:servers) {
+
+            case INFO_USER_SERVERS_OK:
+                // Clear current items in listview
+                Platform.runLater(() -> fxListViewServers.getItems().clear());
+                Set<Server> joined = (Set<Server>) responseBody.get("joined");
+                Set<UUID> privileged = (Set<UUID>) responseBody.get("privileged");
+                currentUser.setPrivilegedServers(new ArrayList<>(privileged));
+                for (Server server:joined) {
+
                     Platform.runLater(() ->listViewServerData.add(
                             new ListViewServerRow(
                                     server.getId(),
                                     server.getName(),
                                     server.getDescription(),
                                     server.getServerIconFromBase64(),
-                                    server.getChannels())
-                    ));
+
+                                    server.getJoinID()
+                            )));
                 }
                 break;
-            case INFO_CHANNELS:
+            case LEAVE_CHANNEL_ERROR:
+            case INFO_USER_SERVERS_ERROR:
+            case INFO_CHANNELS_ERROR:
+            case JOIN_CHANNEL_ERROR:
+                logger.error(response);
+                Platform.runLater(() ->
+                        fxLabelServerStatus.setText((String) responseBody.get("message")));
+                break;
+            case INFO_CHANNELS_OK:
+
                 // Clear current items in listview
                 Platform.runLater(() -> fxListViewChannel.getItems().clear());
                 // Add new listview Channels
@@ -213,43 +266,70 @@ public class ControllerMain implements Controller{
                             )));
                 }
                 break;
-            case INFO_USER_PRIVILEGED_SERVERS:
-                currentUser.setPrivilegedServers((List<UUID>) responseBody.get("servers"));
-                break;
-            case INFO_USER_ICONS_IN_SERVER:
-                ChatFile[] userIcons = (ChatFile[]) responseBody.get("iconsUuid");
-                // Save files
-                for (ChatFile chatFile: userIcons){
-                    File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
-                    // Check if user icon exists by UUID
-                    File icon = new File(diskordDir, "userIcons/" + chatFile.getFileName());
-                    byte[] img = Base64.getDecoder().decode(chatFile.getBase64File());
-                    try (FileOutputStream stream = new FileOutputStream(icon)) {
-                        stream.write(img);
-                    }catch (IOException err){
-                        // Thrown when file cannot be accessed when it was created.
-                        // It should not happen but if happens, user will have default icon
-                        logger.error(err);
-                    }
+
+            case JOIN_CHANNEL_OK:
+                Platform.runLater(() -> fxLabelServerStatus.setText("Joined channel"));
+                User[] channelUsers = (User[]) responseBody.get("users");
+                Arrays.stream(channelUsers).forEach(x -> currentChatUsers.put(x.getUserUUID(), x));
+                // Clear current items in listview
+                Platform.runLater(() -> fxListViewUsers.getItems().clear());
+                for (User user: channelUsers) {
+                    Platform.runLater(() ->
+                            listViewUsersData.add(
+                                    new ListViewUsersRow(
+                                            user.getUsername(),
+                                            user.getUserImage()
+                                    )
+                                    ));
                 }
                 break;
+            case MSG:
+                logger.info(response);
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+                LocalDateTime now = LocalDateTime.now();
+                User user;
+                //TODO Get currently joined users from server
+                if(currentChatUsers.containsKey((UUID) responseBody.get("userUuid"))){
+                    user = currentChatUsers.get((UUID) responseBody.get("userUuid"));
+                }else{
+                    user = new User("Unkown user",null,Utils.generateImage(40,40,1,1,1,1));
+                }
+                System.out.println();
+                if(responseBody.containsKey("chatFile")){
+                    ChatFile chatFile = (ChatFile) responseBody.get("chatFile");
+                    Platform.runLater(() ->
+                            listViewChatData.add(
+                                    new ListViewChatRow(
+                                            user,
+                                            (String) responseBody.get("message"),
+                                            dtf.format(now),
+                                            chatFile
+                                    )));
+                }else{
+                    Platform.runLater(() ->
+                            listViewChatData.add(
+                                    new ListViewChatRow(
+                                            user,
+                                            (String) responseBody.get("message"),
+                                            dtf.format(now),
+                                            null
+                                    )));
+                }
+                break;
+            case MSG_OK:
+                logger.info("Message sent");
+                break;
+            case MSG_ERROR:
+                logger.error(response);
+                Platform.runLater(() -> {
+                    fxLabelChatStatus.setTextFill(Color.rgb(200,0 , 0));
+                    fxLabelChatStatus.setText((String) responseBody.get("message"));
+                });
+                break;
+            case LEAVE_CHANNEL_OK:
+                logger.info(response);
+                break;
         }
-    }
-
-    /**
-     * Method that gets controllers supported listen types.
-     * Usually when client sends server payload, client will create UUID and remember
-     * from what controller did the request come from so when server responds, it can
-     * use the UUID to find the correct controller.
-     * But when server sends payload without the UUID, it will filter controllers
-     * that have subscribed to listen with those payload types and handle the
-     * payload on those controllers.
-     * @return Set of supported payload types
-     */
-    @Override
-    public Set<PayloadType> getListenTypes() {
-        return Stream.of(PayloadType.INFO_SERVERS,PayloadType.MSG)
-                .collect(Collectors.toSet());
     }
 
     /**
@@ -257,51 +337,18 @@ public class ControllerMain implements Controller{
      */
     public void getUserSuscribedServers() throws IOException {
         // Craft payload to get all servers
-        Payload serversRequest = new Payload();
-        serversRequest.setType(PayloadType.INFO_SERVERS);
-        //serversRequest.putBody("token", currentUser.getUserToken());
-        //serverConnection.write(serversRequest);
+        Payload request = new Payload();
+        request.setJwt(currentUser.getUserToken());
+        request.setType(PayloadType.INFO_USER_SERVERS);
+        serverConnection.writeWithResponse(request,this);
+
         //TODO Replace test data
         handleResponse(TestData.getUserSuscribedServers());
     }
 
-    /**
-     * Method requests users privileged servers from server
-     */
-    public void getUserPrivilegedServers(){
-        Payload userPrivilegeRequest = new Payload();
-        userPrivilegeRequest.setType(PayloadType.INFO_USER_PRIVILEGED_SERVERS);
-        //TODO Send server request
-        //TODO Replace test data
-        handleResponse(TestData.getUserPrivilegedServers());
-    }
 
-    /**
-     * Method that gets all user icons in server. Clients sends server its saved user icons UUID
-     * Server then knows what icons are missing and will send them back
-     * @param serverUUID The Servers UUID where Icons are requested
-     */
-    public void getUsersIconsFromServer(UUID serverUUID){
-        File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
-        File diskordIconDir = new File(diskordDir, "userIcons");
-        File[] icons = diskordIconDir.listFiles();
-        UUID[] iconsUUID = new UUID[icons.length];
-        for(int i = 0; i < icons.length; i++){
-            try{
-                iconsUUID[i] = UUID.fromString(icons[i].getName());
-            }catch (IllegalArgumentException err){
-                logger.error(err);
-                // Catch and do nothing with the exception because the icon will still
-                // be retrieved from server
-            }
-        }
 
-        Payload request = new Payload();
-        request.setType(PayloadType.INFO_USER_ICONS_IN_SERVER);
-        request.putBody("uuid", serverUUID);
-        request.putBody("iconsUuid",iconsUUID);
-        //TODO Send request
-    }
+
 
     /**
      * Method to set Main stage. It is needed when opening new stage and making javaFX
@@ -339,20 +386,43 @@ public class ControllerMain implements Controller{
     }
 
     /**
+
+     * Method that gets controllers supported listen types.
+     * Usually when client sends server payload, client will create UUID and remember
+     * from what controller did the request come from so when server responds, it can
+     * use the UUID to find the correct controller.
+     * But when server sends payload without the UUID, it will filter controllers
+     * that have subscribed to listen with those payload types and handle the
+     * payload on those controllers.
+     * @return Set of supported payload types
+     */
+    @Override
+    public Set<PayloadType> getListenTypes() {
+        return Stream.of(
+                PayloadType.INFO_USER_SERVERS,
+                PayloadType.INFO_CHANNELS,
+                PayloadType.JOIN_CHANNEL_OK,
+                PayloadType.JOIN_CHANNEL_ERROR,
+                PayloadType.MSG)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+
      * Method adds chat info to fxListviewChat
      * @param user user object from where the message came
      * @param message The message that is displayed
      * @param timeStamp When message was sent
-     * @param dataType The datatype of message
-     * @param file  ChatFileObject if datatype is file
+
+     * @param file  ChatFileObject
      */
-    public void handleChatMessage(User  user, String message, String timeStamp, int dataType, ChatFile file){
+    public void handleChatMessage(User  user, String message, String timeStamp, ChatFile file){
+
             listViewChatData.add(
                     new ListViewChatRow(
                             user,
                             message,
                             timeStamp,
-                            dataType,
                             file));
     }
 
@@ -386,21 +456,11 @@ public class ControllerMain implements Controller{
         }
 
 
-        String fileBase64;
-        // Read user attached file to base64
-        //if(attachedFile != null){
-        //    byte[] bytes = new byte[(int)attachedFile.length()];
-        //    try(FileInputStream fis = new FileInputStream(attachedFile)){
-        //        fis.read(bytes);
-        //    }catch (IOException err){
-        //        attachedFile = null;
-        //        fxTextAreaChatBox.setText(attachedFile.getName() + " not found!");
-        //        return;
-        //    }
-        //    fxLabelChatStatus.setText("");
-        //    //fileBase64 =  Base64.getEncoder().encodeToString(bytes);
-        //}
-        //TODO send message to server. Get response code
+        // Craft payload to server
+        Payload request = new Payload();
+        request.setJwt(currentUser.getUserToken());
+        request.setType(PayloadType.MSG);
+
 
         // Clear currently written text
         fxTextAreaChatBox.setText("");
@@ -410,25 +470,40 @@ public class ControllerMain implements Controller{
         LocalDateTime currentDate = LocalDateTime.now();
 
         if(attachedFile == null){ // Only message. Datatype = 0
-            handleChatMessage(currentUser,message,dateTimeFormatter.format(currentDate),0,null);
+            request.putBody("message", message);
+            handleChatMessage(currentUser,message,dateTimeFormatter.format(currentDate),null);
             return;
         }
         try{
-            ChatFile chatFile = new ChatFile(null,attachedFile.getName(),Base64.getEncoder().encodeToString(Files.readAllBytes(attachedFile.toPath())));
+            ChatFile chatFile;
             // Get file extension
             int extensionIndex = attachedFile.getName().lastIndexOf('.');
             String extension = attachedFile.getName().substring(extensionIndex+1).toLowerCase(Locale.ROOT);
             // Check if file is java.Image supported image type
             if(extension.equals("png") || extension.equals("gif") || extension.equals("jpeg") || extension.equals("bmp")) {
+                chatFile = new ChatFile(UUID.randomUUID(),
+                        attachedFile.getName(),
+                        Base64.getEncoder().encodeToString(Files.readAllBytes(attachedFile.toPath())),
+                        ChatFileType.IMAGE
+                );
                 // Message with image. Datatype = 1
-                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), 1, chatFile);
+                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate),  chatFile);
             }else{
+                chatFile = new ChatFile(UUID.randomUUID(),
+                        attachedFile.getName(),
+                        Base64.getEncoder().encodeToString(Files.readAllBytes(attachedFile.toPath())),
+                        ChatFileType.FILE
+                );
                 // Message with file. Datatype = 2
-                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), 2, chatFile);
+                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), chatFile);
             }
+            request.putBody("chatFile",chatFile);
         }catch (IOException err){
             fxTextAreaChatBox.setText(attachedFile.getName() + " not found!");
         }
+        serverConnection.writeWithResponse(request,this);
+        //TODO Replace test data
+        handleResponse(TestData.getSendChat());
         // All actions done with attached file. Set it to null pointer
         attachedFile = null;
 
@@ -463,30 +538,46 @@ public class ControllerMain implements Controller{
      * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
      * Method changes fxListViewChannels to clicked server channels
      */
-    public void fxEventListViewServerOnMouseClicked() {
+
+    public void fxEventListViewServerOnMouseClicked() throws IOException {
         ListViewServerRow clickedServer = fxListViewServers.getSelectionModel().getSelectedItem();
         if(clickedServer != null){
-            Payload channelsRequest = new Payload();
-            channelsRequest.setType(PayloadType.INFO_CHANNELS);
-            channelsRequest.putBody("serverUUID",clickedServer.getUuid());
+            Payload request = new Payload();
+            request.setJwt(currentUser.getUserToken());
+            request.setType(PayloadType.INFO_CHANNELS);
+            request.putBody("serverUUID",clickedServer.getUuid());
+            serverConnection.writeWithResponse(request,this);
 
-            //TODO Send request to server
             //TODO Replace test data
             handleResponse(TestData.getServerChannels(clickedServer.getUuid()));
         }
     }
 
+
     /**
      * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
      * Method changes fxListViewChannels to clicked server channels
      */
-    public void fxEventListViewChannelOnMouseClicked() {
+    public void fxEventListViewChannelOnMouseClicked() throws IOException {
         ListViewChannelRow clickedChannel = fxListViewChannel.getSelectionModel().getSelectedItem();
         if(clickedChannel != null){
+            if(currentChatUuid != null){
+                Payload request = new Payload();
+                request.setJwt(currentUser.getUserToken());
+                request.setType(PayloadType.LEAVE_CHANNEL);
+                serverConnection.writeWithResponse(request,this);
+                return;
+            }
             currentChatUuid = clickedChannel.getUuid();
             Payload request  = new Payload();
-            //request.setType()
-            //TODO Get chats from channel with UUID
+            request.setJwt(currentUser.getUserToken());
+            request.setType(PayloadType.JOIN_CHANNEL);
+            request.putBody("channel_uuid", clickedChannel.getUuid());
+            serverConnection.writeWithResponse(request,this);
+
+            //TODO Replace Test data
+            handleResponse(TestData.getChannelJoin());
+
 
         }
     }
@@ -521,6 +612,8 @@ public class ControllerMain implements Controller{
         Stage imageStage = new Stage();
         imageStage.initOwner(mainStage);
         imageStage.initStyle(StageStyle.UNDECORATED);
+        // Make stage not resizable
+        imageStage.setResizable(false);
         // Create new pane and  set padding
         StackPane pane = new StackPane();
         pane.setPadding(new Insets(10,10,10,10));
@@ -567,6 +660,105 @@ public class ControllerMain implements Controller{
         pane.getChildren().add(vBox);
         imageStage.setScene(new Scene(pane));
         imageStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(imageStage);
+    }
+
+    public void fxEventListViewServersContextMenuJoinOnAction() throws IOException {
+        logger.info("fxEventListViewServersContextMenuJoinOnAction");
+
+        // Create stage for join server window
+        Stage serverJoinStage = new Stage();
+        // Set serverJoinStage parent to current mainStage, so only channelRegisterStage can be clicked
+        serverJoinStage.initModality(Modality.WINDOW_MODAL);
+        serverJoinStage.initOwner(mainStage);
+        // Make stage not resizable
+        serverJoinStage.setResizable(false);
+        // Load fxml
+        FXMLLoader serverJoinLoader = new FXMLLoader(getClass().getClassLoader().getResource("join_server.fxml"));
+        Parent registerRoot = (Parent)serverJoinLoader.load();
+        ControllerJoinServer channelRegisterController = serverJoinLoader.getController();
+        // Pass main stage,parent controller and serverConnection to new controller
+        channelRegisterController.setMainStage(mainStage);
+        channelRegisterController.setServerConnection(serverConnection);
+        channelRegisterController.setParentController(this);
+        channelRegisterController.init();
+        serverJoinStage.setTitle("Join server");
+        serverJoinStage.setScene(new Scene(registerRoot));
+        serverJoinStage.show();
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(serverJoinStage);
+    }
+
+    public void fxEventListViewServersContextMenuCreateOnAction() throws IOException {
+        logger.info("ListViewServersContextMenuCreateOnAction");
+
+        // Create stage for register window
+        Stage serverRegisterStage = new Stage();
+        // Set registerStage parent to current mainStage, so only registerStage can be clicked
+        serverRegisterStage.initModality(Modality.WINDOW_MODAL);
+        serverRegisterStage.initOwner(mainStage);
+        // Make stage not resizable
+        serverRegisterStage.setResizable(false);
+        // Load fxml
+        FXMLLoader serverRegisterLoader = new FXMLLoader(getClass().getClassLoader().getResource("register_server.fxml"));
+        Parent registerRoot = (Parent)serverRegisterLoader.load();
+        ControllerRegisterServer serverRegisterController = serverRegisterLoader.getController();
+        // Pass main stage,parent controller and serverConnection to new controller
+        serverRegisterController.setMainStage(mainStage);
+        serverRegisterController.setServerConnection(serverConnection);
+        serverRegisterController.setParentController(this);
+        serverRegisterController.init();
+        serverRegisterStage.setTitle("Register server");
+        serverRegisterStage.setScene(new Scene(registerRoot));
+        serverRegisterStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(serverRegisterStage);
+
+
+    }
+
+    public void fxEventListViewServersContextMenuDeleteOnAction(){
+        ListViewServerRow selectedRow = fxListViewServers.getSelectionModel().getSelectedItem();
+        if(selectedRow != null){
+            logger.info("ListViewServersContextMenuDeleteOnAction:" + selectedRow.toString());
+        }
+    }
+
+    public void fxEventListViewChannelsContextMenuCreateOnAction() throws IOException {
+        logger.info("ListViewChannelsContextMenuCreateOnAction");
+
+        // Create stage for register window
+        Stage channelRegisterStage = new Stage();
+        // Set channelRegisterStage parent to current mainStage, so only channelRegisterStage can be clicked
+        channelRegisterStage.initModality(Modality.WINDOW_MODAL);
+        channelRegisterStage.initOwner(mainStage);
+        // Make stage not resizable
+        channelRegisterStage.setResizable(false);
+        // Load fxml
+        FXMLLoader channelRegisterLoader = new FXMLLoader(getClass().getClassLoader().getResource("register_channel.fxml"));
+        Parent registerRoot = (Parent)channelRegisterLoader.load();
+        ControllerRegisterChannel channelRegisterController = channelRegisterLoader.getController();
+        // Pass main stage,parent controller and serverConnection to new controller
+        channelRegisterController.setMainStage(mainStage);
+        channelRegisterController.setServerConnection(serverConnection);
+        channelRegisterController.setParentController(this);
+        channelRegisterController.init();
+        channelRegisterStage.setTitle("Register channel");
+        channelRegisterStage.setScene(new Scene(registerRoot));
+        channelRegisterStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(channelRegisterStage);
+    }
+
+    public void fxEventListViewChannelsContextMenuDeleteOnAction(){
+        ListViewChannelRow selectedRow = fxListViewChannel.getSelectionModel().getSelectedItem();
+        if(selectedRow != null){
+            logger.info("ListViewChannelsContextMenuDeleteOnAction" + selectedRow.toString());
+        }
     }
 
     public void fxEventListViewServersContextMenuJoinOnAction(){
@@ -649,6 +841,7 @@ public class ControllerMain implements Controller{
      * Custom listViewRow class data class. This class holds servers name, description and image.
      */
     private static class ListViewServerRow {
+
         @Getter
         private final UUID uuid;
         @Getter
@@ -658,21 +851,27 @@ public class ControllerMain implements Controller{
         @Getter
         private final String description;
         @Getter
-        private final List<Channel> channels;
-        public ListViewServerRow(UUID uuid, String name, String description, Image image, List<Channel> channels) {
+        private final String joinID;
+
+        public ListViewServerRow(UUID uuid, String name, String description, Image image, String joinID) {
+
             super();
             this.uuid = uuid;
             this.name = name;
             this.description = description;
             this.image = image;
-            this.channels = channels;
+
+            this.joinID = joinID;
         }
+
         @Override
         public String toString() {
-            return "listViewServerRow{" +
+            return "ListViewServerRow{" +
                     "uuid=" + uuid +
                     ", name='" + name + '\'' +
                     ", description='" + description + '\'' +
+                    ", joinID='" + joinID + '\'' +
+
                     '}';
         }
     }
@@ -703,7 +902,10 @@ public class ControllerMain implements Controller{
         protected void updateItem(ListViewServerRow item, boolean empty) {
             super.updateItem(item, empty);
             if (item != null && !empty) { // <== test for null item and empty parameter
-                tooltip.setText(item.getName() + "\n" + item.getDescription());
+                tooltip.setText(
+                        item.getName() + "\n" +
+                        item.getDescription() + "\n" +
+                        item.getJoinID());
                 imageView.setImage(item.getImage());
                 Tooltip.install(content, tooltip);
                 setGraphic(content);
@@ -790,27 +992,22 @@ public class ControllerMain implements Controller{
         @Getter
         private final String timestamp; // The date when message was sent
         @Getter
-        private final int dataType;
-        @Getter
         private final ChatFile file;
         /**
          * Custom listview row object for chat listview.
          * @param user User object that has UUID, name and icon
          * @param message Message data
          * @param timestamp Date when message was sent
-         * @param dataType Datatype that indicates what kind of functionality listviewChatRow has. 0 = only message
-         *                 1 = message and image. Shows image and message in listview
-         *                 2 = file. Shows image icon and file name. Also indicates that when clicked on, will
-         *                 download the file from server
          * @param file     ChatFile object that has file name,base64 and UUID. UUID is necessary so file can be
-         *                 requested from server with UUID
+         *                 requested from server with UUID.
          */
-        public ListViewChatRow(User user, String message, String timestamp, int dataType, ChatFile file) {
+
+        public ListViewChatRow(User user, String message, String timestamp, ChatFile file) {
+
             super();
             this.user = user;
             this.message = message;
             this.timestamp = timestamp;
-            this.dataType = dataType;
             this.file = file;
         }
     }
@@ -864,15 +1061,15 @@ public class ControllerMain implements Controller{
                 textSentDate.setText(item.getTimestamp());
 
                 //Check dataype property to know what type of message it is
-                if(item.dataType == 0){ // Message type is only text message
+                if(item.getFile() == null){ // Message type is only text message
                     // Set messageImage ImageView object hidden so it doesnt take space
                     messageImage.setVisible(false);
                     textMessage.setText(item.getMessage());
-                }else if(item.dataType == 1){ // Message type is text with image
+                }else if(item.getFile().getFileType() == ChatFileType.IMAGE){ // Message type is text with image
                     // Set messageImage to image from listViewChatRow object
                     messageImage.setImage(item.getFile().getImage(330));
                     textMessage.setText(item.getMessage());
-                }else if(item.dataType == 2){// Message type is file
+                }else if(item.getFile().getFileType() == ChatFileType.FILE){// Message type is file
                     // Set messageImage to file icon.
                     Image fileIcon = new Image(String.valueOf(getClass().getClassLoader().getResource("fileIcon.png")),
                             50,0,true,true);
@@ -881,6 +1078,62 @@ public class ControllerMain implements Controller{
                     textMessage.setText(item.getFile().getFileName());
 
                 }
+                setGraphic(content);
+            } else {
+                setGraphic(null);
+            }
+        }
+    }
+
+    /**
+     * Custom listViewRow class data class.
+     */
+    private static class ListViewUsersRow {
+        @Getter
+        private final Image image;
+        @Getter
+        private final String name;
+        public ListViewUsersRow(String name, Image image) {
+            super();
+            this.name = name;
+            this.image = image;
+        }
+
+        @Override
+        public String toString() {
+            return "ListViewUsersRow{" +
+                    "image=" + image +
+                    ", name='" + name + '\'' +
+                    '}';
+        }
+    }
+
+    /**
+     * Custom Listview Listcell. It holds the content of single ListViewRow
+     */
+    private class CustomUsersListViewCell extends ListCell<ListViewUsersRow> {
+        private final HBox content;
+        private final ImageView imageView;
+        private final Label label;
+
+
+        /**
+         * Contstructor for CustomListCell. Define variables and set the layout of single cell
+         */
+        public CustomUsersListViewCell() {
+            super();
+            label = new Label();
+            imageView = new ImageView();
+            content = new HBox(imageView,label);
+            content.setSpacing(10);
+        }
+
+        @Override
+        protected void updateItem(ListViewUsersRow item, boolean empty) {
+            super.updateItem(item, empty);
+            if (item != null && !empty) { // <== test for null item and empty parameter
+                label.setText(item.getName());
+                imageView.setImage(item.getImage());
                 setGraphic(content);
             } else {
                 setGraphic(null);

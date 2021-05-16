@@ -4,39 +4,84 @@ package diskord.payload;
 public enum PayloadType {
   BINK, // ping, aga meie ikooniga sobivas kirjastiilis.
   BONK,
+
+
+  // MSG body properties
+  // Response
+  // Key: "userUuid" value: (UUID) users uuid who sent message
+  // Key: "message" value: (String) user sent message
+  // Optional key: "chatFile" value: (ChatFile) User sent file
+  // Request
+  // Key: "message" value: (String) user sent message
+  // Optional key: "chatFile" value: (ChatFile) User sent file
   MSG,
-  // JOIN_CHANNEL
+  // MSG body properties
+  // nothing
+  MSG_OK,
+  // MSG body properties
+  // Key: "message" value: (String) error message
+  MSG_ERROR,
+
+  // JOIN_CHANNEL body properties
+  // Key: "channel_uuid" value:(UUID) channels uuid
   JOIN_CHANNEL,
-  LEAVE,
+  // JOIN_CHANNEL_OK body properties
+  // Key: "users" value: (User[]) Currently joined users
+  JOIN_CHANNEL_OK,
+  // JOIN_CHANNEL_ERROR body properties
+  // Key: "message" value:(String) Error message
+  JOIN_CHANNEL_ERROR,
+
+  // LEAVE CHANNEL body properties
+  // Nothing
+  LEAVE_CHANNEL,
+  LEAVE_CHANNEL_OK,
+  // LEAVE_CHANNEL_ERROR body properties
+  // nothing
+  LEAVE_CHANNEL_ERROR,
+  // JOIN_CHANNEL_ERROR body properties
+  // Key: "message" value:(String) Error message
+
+  // JOIN_SERVER body properties
+  // Key: "joinId" value: (String) Join id that user entered
+  JOIN_SERVER,
+  // JOIN_SERVER_OK body properties
+  // nothing
+  JOIN_SERVER_OK,
+  // JOIN_SERVER_ERROR body properties
+  // Key: "message" value: (String) error message
+  JOIN_SERVER_ERROR,
 
   INFO,
+  // request
   // INFO_SERVERS body properties
-  // Key: "servers" value: (List<Server>) servers
-  INFO_SERVERS,
-
-  // Request to server
-  // INFO_SERVER_USER_PRIVILEGE body properties
   // nothing
-  // Response from server
-  // INFO_SERVER_USER_PRIVILEGE body properties
-  // Key: "servers" value: (List<UUID>) list of user privileged servers
-  INFO_USER_PRIVILEGED_SERVERS,
+  INFO_USER_SERVERS,
+  // response
+  // INFO_SERVERS body properties
+  // Key: "joined" value: (Set<UUID>) servers
+  // Key: "privileged" value: (Set<UUID>) servers
+  INFO_USER_SERVERS_OK,
+  // response
+  // INFO_SERVERS body properties
+  // Key: "message" value: (String) error message
+  INFO_USER_SERVERS_ERROR,
 
   // Request to server
   //INFO_CHANNELS body properties
-  // Key: "serverUUID" value: (UUID) Server UUID
-  // Response from server
-  //INFO_CHANNELS body properties
-  // Key: "channels" value: (List<Channel>) channels
+  //TODO serverUUID -> server_id
+  // Key: "serverId" value: (UUID) Server UUID
   INFO_CHANNELS,
-  // Request to server
-  // INFO_USER_ICONS_IN_SERVER body properties
-  // Key: "uuid" value: (UUID) servers uuid
-  // Key: "savedIcons" value: (UUID) User uuid array whose icons are saved already
   // Response from server
-  // INFO_USER_ICONS_IN_SERVER body properties
-  // Key: "iconsUuid" value: (ChatFile[]) user icons.
-  INFO_USER_ICONS_IN_SERVER,
+  //INFO_CHANNELS_OK body properties
+  // Key: "channels" value: (List<Channel>) channels
+  INFO_CHANNELS_OK,
+  // Response from server
+  //INFO_CHANNELS_ERROR body properties
+  // Key: "message" value: (String) error message
+  INFO_CHANNELS_ERROR,
+
+
   INVALID,
   AUTH_ERROR,
   CHAT_ERROR,
@@ -48,6 +93,7 @@ public enum PayloadType {
   LOGIN,
   // LOGIN_OK body properties
   // Key: "username" value: (String) Username
+
   // Key: "uuid" value: (UUID) user UUID
   // Key: "token" value: (String) auth token
   // Key: "icon" value: (String) base64icon
@@ -59,12 +105,15 @@ public enum PayloadType {
   // REGISTER body properties
   // Key: "username" value: (String) username
   // Key: "password" value: (String) password
-  // Key: "icon" vlaue: (String) base64 icon
+
+  // Key: "icon" value: (String) base64 icon
   REGISTER,
   // REGISTER_OK body properties
-  // Key: "Message" value: (String) error message
+  // nothing
   REGISTER_OK,
   // REGISTER_ERROR body properties
+  // TODO Typo Message -> message
+
   // Key: "Message" value: (String) error message
   REGISTER_ERROR,
 

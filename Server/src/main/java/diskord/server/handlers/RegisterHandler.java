@@ -2,6 +2,7 @@ package diskord.server.handlers;
 
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
+import diskord.payload.ResponseType;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.Role;
@@ -12,11 +13,12 @@ import io.netty.channel.Channel;
 
 import javax.persistence.NoResultException;
 import javax.validation.constraints.NotNull;
+import java.util.Base64;
 import java.util.Map;
 
 import static diskord.payload.PayloadBody.*;
-import static diskord.payload.PayloadType.REGISTER_ERROR;
-import static diskord.payload.PayloadType.REGISTER_OK;
+import static diskord.payload.PayloadType.*;
+import static diskord.payload.ResponseType.TO_SELF;
 import static diskord.server.utils.credentials.CredentialConstraint.*;
 import static diskord.server.utils.credentials.CredentialConstraint.TOO_LONG_CONSTRAINT;
 
@@ -29,7 +31,7 @@ public class RegisterHandler extends Handler {
   public Payload handleRequest(final Payload request, final Channel channel) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
-
+    response.setResponseType(TO_SELF);
     // Getting register data from the request body
     final PayloadBody body = request.getBody();
     String username = (String) body.get(BODY_USERNAME);
@@ -67,6 +69,13 @@ public class RegisterHandler extends Handler {
         .putBody(BODY_MESSAGE, passwordError);
     }
 
+    String icon = (String) request.getBody().get("icon");
+    //validate if the received String is valid base64
+    try{
+      byte[] decode = Base64.getDecoder().decode(icon);
+    } catch (IllegalArgumentException err){
+      return response.setType(REGISTER_ERROR).putBody(BODY_MESSAGE, "Decoding icon String to Base64 failed.");
+    }
     try {
       // Trying to find existing user. When it's found alert user that the username
       // is already taken.
@@ -79,10 +88,11 @@ public class RegisterHandler extends Handler {
       // specified username does not exist. Thus we can create one.
 
       // Creating and storing the new user
-      User user = new User(username, password, Role.USER);
+      User user = new User(username, password, Role.USER, icon);
       dbManager.save(user);
 
       // Creating jsonwebtoken for the logged in user
+      //TODO: Role.USER deprecated, no longer only one role per user
       String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
 
       // Responding with OK and token
@@ -91,7 +101,6 @@ public class RegisterHandler extends Handler {
         .setResponseTo(request.getId())
         .putBody(BODY_TOKEN, loginToken);
     }
-
     return response;
   }
 }

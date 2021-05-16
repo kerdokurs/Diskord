@@ -17,6 +17,7 @@ import java.util.Map;
 import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.LOGIN_ERROR;
 import static diskord.payload.PayloadType.LOGIN_OK;
+import static diskord.payload.ResponseType.TO_SELF;
 import static diskord.server.utils.credentials.CredentialConstraint.NULL_CONSTRAINT;
 
 public class LoginHandler extends Handler {
@@ -28,6 +29,7 @@ public class LoginHandler extends Handler {
   public Payload handleRequest(final Payload request, final Channel channel) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
+    response.setResponseType(TO_SELF);
 
     // Getting submitted data from the payload body
     final PayloadBody body = request.getBody();
@@ -71,6 +73,7 @@ public class LoginHandler extends Handler {
         // Login was successful, generating jsonwebtoken
         String loginToken = Auth.encode(user.getUsername(), Map.of());
 
+        //username - Auth.decode(loginToken).getSubject();
         // Populating response with proper data
         response
           .setType(LOGIN_OK)

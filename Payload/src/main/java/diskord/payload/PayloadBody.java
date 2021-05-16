@@ -13,6 +13,8 @@ public class PayloadBody extends HashMap<String, Object> implements Serializable
   public static final transient String BODY_PASSWORD = "password";
 
   public static final transient String BODY_INVALID = "invalid request";
+
+  public static final transient String SERVER_ID = "serverId";
 }
 
 

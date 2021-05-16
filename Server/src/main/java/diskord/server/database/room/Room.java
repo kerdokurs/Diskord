@@ -37,4 +37,8 @@ public class Room {
   @Getter
   @Setter
   private String icon;
+
+  @Getter
+  @Setter
+  private String joinId;
 }
