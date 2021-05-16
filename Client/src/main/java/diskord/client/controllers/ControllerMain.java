@@ -206,8 +206,8 @@ public class ControllerMain implements Controller{
             case INFO_USER_SERVERS_OK:
                 // Clear current items in listview
                 Platform.runLater(() -> fxListViewServers.getItems().clear());
-                Set<Server> joined = (Set<Server>) responseBody.get("joined");
-                Set<UUID> privileged = (Set<UUID>) responseBody.get("privileged");
+                Set<Server> joined = Set.of();// ((List<Server>) responseBody.get("joined")).stream().collect(Collectors.toSet());
+                Set<UUID> privileged = Set.of();//((Set<UUID>) responseBody.get("privileged")).stream().collect(Collectors.toSet());
                 currentUser.setPrivilegedServers(new ArrayList<>(privileged));
                 for (Server server:joined) {
                     Platform.runLater(() ->listViewServerData.add(

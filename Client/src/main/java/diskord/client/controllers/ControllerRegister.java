@@ -74,8 +74,7 @@ public class ControllerRegister implements Controller{
             request.setType(PayloadType.REGISTER);
             request.putBody("username",fxTextFieldUsername.getText());
             request.putBody("password",fxTextFieldPassword.getText());
-
-            //request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
             serverConnection.writeWithResponse(request,this);
             //TODO replace test data
             //handleResponse(TestData.getRegister());

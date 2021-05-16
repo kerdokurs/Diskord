@@ -45,7 +45,7 @@ public class User {
             byte[] img = Base64.getDecoder().decode(imageBase64);
             InputStream stream = new ByteArrayInputStream(img);
             userImage_ = new Image(stream, 40,40,true,true);
-        }catch (IllegalArgumentException err){
+        }catch (NullPointerException | IllegalArgumentException err){
             userImage_ = Utils.generateImage(40,40,1,1,1,1);
             logger.error(err.getMessage());
         }

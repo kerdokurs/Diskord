@@ -8,6 +8,7 @@ module diskord.client {
     requires org.apache.logging.log4j;
     requires org.apache.logging.log4j.core;
     requires diskord.payload;
+    requires io.netty.all;
     exports diskord.client;
     // https://stackoverflow.com/questions/62659576/illegalaccessexception-cannot-access-class-c-in-module-m-because-module-m-doe
     opens diskord.client.controllers to javafx.fxml;
