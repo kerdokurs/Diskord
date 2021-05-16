@@ -143,27 +143,36 @@ public class ControllerLogin implements Controller {
                 // Get current user from server response
                 CurrentUser currentUser = new CurrentUser(
                         (String)responseBody.get("username"),           // Username
-                        (UUID)responseBody.get("uuid"),                 // user UUID
+                        UUID.fromString((String) responseBody.get("uuid")),                 // user UUID
                         (String)responseBody.get("token"),              // User webtoken
                         (String)responseBody.get("icon"));              // User icon as base64 string
+                Platform.runLater(() -> {
+                    // Open main window
+                    FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
+                    Parent mainRoot = null;
+                    try {
+                        mainRoot = (Parent)mainLoader.load();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    ControllerMain mainController = (ControllerMain) mainLoader.getController();
 
-                // Open main window
-                FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
-                Parent mainRoot = (Parent)mainLoader.load();
-                ControllerMain mainController = (ControllerMain) mainLoader.getController();
+                    // Make stage not resizable
+                    mainStage.setResizable(false);
 
-
-                // Make stage not resizable
-                mainStage.setResizable(false);
-
-                // Pass parameters to controllers
-                mainController.setMainStage(mainStage);
-                mainController.setCurrentUser(currentUser);
-                mainController.setServerConnection(serverConnection);
-                mainController.init();
-                mainStage.setTitle("Chat");
-                mainStage.setScene(new Scene(mainRoot));
-                mainStage.show();
+                    // Pass parameters to controllers
+                    mainController.setMainStage(mainStage);
+                    mainController.setCurrentUser(currentUser);
+                    mainController.setServerConnection(serverConnection);
+                    try {
+                        mainController.init();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    mainStage.setTitle("Chat");
+                    mainStage.setScene(new Scene(mainRoot));
+                    mainStage.show();
+                });
                 break;
             case LOGIN_ERROR:
                 // All FX interaction must be done in this
