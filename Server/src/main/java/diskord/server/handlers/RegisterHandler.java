@@ -67,7 +67,7 @@ public class RegisterHandler extends Handler {
         .putBody(BODY_FIELD, BODY_PASSWORD)
         .putBody(BODY_MESSAGE, passwordError);
     }
-    //TODO: need to receive user icon from client. request.body.icon
+
     String icon = (String) request.getBody().get("icon");
     //validate if the received String is valid base64
     try{
@@ -86,14 +86,12 @@ public class RegisterHandler extends Handler {
       // If UserRepsitory#findOne does not return NoResultException, then user with
       // specified username does not exist. Thus we can create one.
 
-      //TODO: validate base64 received from server, save it to user via constructor
-
       // Creating and storing the new user
       User user = new User(username, password, Role.USER, icon);
       dbManager.save(user);
 
       // Creating jsonwebtoken for the logged in user
-      //TODO: Role.USER deprecated, no longer only one role
+      //TODO: Role.USER deprecated, no longer only one role per user
       String loginToken = Auth.encode(user.getUsername(), Map.of("role", Role.USER));
 
       // Responding with OK and token
