@@ -626,6 +626,9 @@ public class ControllerMain implements Controller{
         pane.getChildren().add(vBox);
         imageStage.setScene(new Scene(pane));
         imageStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(imageStage);
     }
 
     public void fxEventListViewServersContextMenuJoinOnAction() throws IOException {
@@ -650,6 +653,8 @@ public class ControllerMain implements Controller{
         serverJoinStage.setTitle("Join server");
         serverJoinStage.setScene(new Scene(registerRoot));
         serverJoinStage.show();
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(serverJoinStage);
     }
 
     public void fxEventListViewServersContextMenuCreateOnAction() throws IOException {
@@ -674,6 +679,9 @@ public class ControllerMain implements Controller{
         serverRegisterStage.setTitle("Register server");
         serverRegisterStage.setScene(new Scene(registerRoot));
         serverRegisterStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(serverRegisterStage);
 
 
     }
@@ -707,6 +715,9 @@ public class ControllerMain implements Controller{
         channelRegisterStage.setTitle("Register channel");
         channelRegisterStage.setScene(new Scene(registerRoot));
         channelRegisterStage.show();
+
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(channelRegisterStage);
     }
 
     public void fxEventListViewChannelsContextMenuDeleteOnAction(){

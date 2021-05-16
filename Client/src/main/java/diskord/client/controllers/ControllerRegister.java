@@ -5,6 +5,7 @@ import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+import diskord.payload.ResponseType;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -61,7 +62,7 @@ public class ControllerRegister implements Controller{
      * register by server side, it will notify user!
      */
     public void fxEventButtonActionRegister() throws IOException {
-        if(!userIconFile.exists()){
+        if(userIconFile == null || !userIconFile.exists()){
             fxLabelMessage.setTextFill(Color.color(1, 0, 0));
             fxLabelMessage.setText("User icon not found!");
             return;
@@ -73,10 +74,11 @@ public class ControllerRegister implements Controller{
             request.setType(PayloadType.REGISTER);
             request.putBody("username",fxTextFieldUsername.getText());
             request.putBody("password",fxTextFieldPassword.getText());
-            request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+
+            //request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
             serverConnection.writeWithResponse(request,this);
             //TODO replace test data
-            handleResponse(TestData.getRegister());
+            //handleResponse(TestData.getRegister());
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));

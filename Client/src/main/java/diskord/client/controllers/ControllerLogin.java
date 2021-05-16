@@ -42,8 +42,6 @@ public class ControllerLogin implements Controller {
     @SneakyThrows
     public void init() {
         // This controller does not need any passive listeners in
-        // server connection class.
-
 
         fxLabelLoginErrorMessage.setAlignment(Pos.CENTER);
         // Check if Diskord folder is created and write login properties to Appdata/diskord
@@ -84,7 +82,7 @@ public class ControllerLogin implements Controller {
         serverConnection.writeWithResponse(loginPayload,this);
 
         //TODO replace test data
-        handleResponse(TestData.getLogin());
+        //handleResponse(TestData.getLogin());
     }
 
     /**
@@ -112,6 +110,8 @@ public class ControllerLogin implements Controller {
         registerStage.setTitle("Register");
         registerStage.setScene(new Scene(registerRoot));
         registerStage.show();
+        // Add newly created stage to serverConnection
+        serverConnection.addStage(registerStage);
     }
 
     /**

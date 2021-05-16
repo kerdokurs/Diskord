@@ -2,6 +2,7 @@ package diskord.server.handlers;
 
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
+import diskord.payload.ResponseType;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.Role;
@@ -26,6 +27,7 @@ public class RegisterHandler extends Handler {
 
   @Override
   public Payload handleRequest(final Payload request, final Channel channel) {
+    System.out.println("SUX COX");
     Payload response = new Payload();
     response.setResponseTo(request.getId());
 
@@ -90,7 +92,7 @@ public class RegisterHandler extends Handler {
         .setResponseTo(request.getId())
         .putBody(BODY_TOKEN, loginToken);
     }
-
-    return response.setType(JOIN_SERVER_OK);
+    response.setResponseType(ResponseType.TO_SELF);
+    return response;
   }
 }
