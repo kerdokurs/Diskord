@@ -16,8 +16,9 @@ import java.util.UUID;
 
 import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.JOIN_SERVER_ERROR;
+import static diskord.payload.ResponseType.TO_SELF;
 
-public class JoinServerHandler extends Handler{
+public class JoinServerHandler extends Handler {
   public JoinServerHandler(DatabaseManager dbManager, ServerHandler serverHandler) {
     super(dbManager, serverHandler);
   }
@@ -33,39 +34,40 @@ public class JoinServerHandler extends Handler{
   @Override
   public Payload handleRequest(Payload request, Channel channel) {
     Payload response = new Payload();
-    request.setResponseTo(request.getId());
+    response.setResponseTo(request.getId());
+    response.setResponseType(TO_SELF);
     //<server_id, jwt token>
-    try{
+    try {
       DecodedJWT decoded = Auth.decode(request.getJwt());
       final User user = UserTransactions.getUserByUsername(dbManager, decoded.getSubject());
       Set<UUID> joinedServers;
-      try{
+      try {
         joinedServers = user.getJoinedServers();
-      } catch (Exception err){
+      } catch (Exception err) {
         return request.setType(JOIN_SERVER_ERROR)
-                      .putBody(BODY_FIELD, "server")
-                      .putBody(BODY_MESSAGE, "Receiving Set<> of Users joined servers failed.");
+          .putBody(BODY_FIELD, "server")
+          .putBody(BODY_MESSAGE, "Receiving Set<> of Users joined servers failed.");
       }
 
       UUID serverId;
-      try{
-        serverId = UUID.fromString((String) request.getBody().get(SERVER_ID));
+      try {
+        serverId = (UUID) request.getBody().get(SERVER_ID);
         //TODO: check UUID validity by trying to find corresponding server? (inefficient/pointless?)
-      } catch (Exception err){
+      } catch (Exception err) {
         return request.setType(JOIN_SERVER_ERROR)
-                      .putBody(BODY_FIELD, "server")
-                      .putBody(BODY_MESSAGE, "Invalid UUID received from server.");
+          .putBody(BODY_FIELD, "server")
+          .putBody(BODY_MESSAGE, "Invalid UUID received from server.");
       }
 
-      try{
-        joinedServers.add(UUID.fromString((String) request.getBody().get(SERVER_ID)));
-      } catch (IllegalArgumentException err){
+      try {
+        joinedServers.add((UUID) request.getBody().get(SERVER_ID));
+      } catch (IllegalArgumentException err) {
         return request.setType(JOIN_SERVER_ERROR)
-                      .putBody(BODY_FIELD, "server")
-                      .putBody(BODY_MESSAGE, "Updating Users joined server Set<> failed.");
+          .putBody(BODY_FIELD, "server")
+          .putBody(BODY_MESSAGE, "Updating Users joined server Set<> failed.");
       }
 
-    } catch (JWTVerificationException err){
+    } catch (JWTVerificationException err) {
       response
         .setResponseTo(request.getId())
         .putBody(BODY_FIELD, "server")
