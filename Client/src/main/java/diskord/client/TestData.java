@@ -1,6 +1,8 @@
 package diskord.client;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
+import javafx.animation.SequentialTransition;
+
 
 import java.util.*;
 
@@ -14,6 +16,7 @@ public class TestData {
                             "Test user: " + i,
                             UUID.randomUUID(),
                             base64Icon());
+
         }
         return users;
     }
@@ -45,6 +48,7 @@ public class TestData {
 
     public static Payload getUserSuscribedServers(){
         Payload response = new Payload();
+
         response.setType(PayloadType.INFO_USER_SERVERS_OK);
 
         Set<Server> joined = new HashSet<>();
@@ -77,9 +81,11 @@ public class TestData {
         Payload response = new Payload();
         response.setType(PayloadType.INFO_CHANNELS_OK);
 
+
         List<Channel> channels = new ArrayList<>();
         channels.add(new Channel("Test channel 1",
                 UUID.fromString("b760dbb0-d626-4579-8997-2d50037bb369"),
+
                 base64Icon()));
         channels.add(new Channel("Test channel 2",
                 UUID.fromString("79e4a52b-6ab2-43b4-b142-2e12a0476c79"),
@@ -87,6 +93,7 @@ public class TestData {
         channels.add(new Channel("Test channel 3",
                 UUID.fromString("ba793031-f95b-445b-9f2f-2ddfe5b1cf20"),
                 base64Icon()));
+
         response.putBody("channels", channels);
         return response;
     }
@@ -128,5 +135,6 @@ public class TestData {
         Payload response = new Payload();
         response.setType(PayloadType.JOIN_SERVER_OK);
         return response;
+
     }
 }

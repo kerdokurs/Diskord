@@ -1,7 +1,9 @@
 package diskord.client.controllers;
 
 import diskord.client.ChatFile;
+
 import diskord.client.ChatFileType;
+
 import diskord.client.ServerConnection;
 import diskord.client.TestData;
 import diskord.payload.Payload;
@@ -111,6 +113,7 @@ public class ControllerRegisterServer implements Controller{
         ChatFile chatFile = new ChatFile(
                 UUID.randomUUID(),
                 serverIconFile.getName(),
+
                 Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())),
                 ChatFileType.IMAGE);
         // craft payload to server
@@ -123,6 +126,7 @@ public class ControllerRegisterServer implements Controller{
         request.putBody("description",fxTextBoxServerDescription.getText());
 
         serverConnection.writeWithResponse(request,this);
+
         //TODO Remove test data
         handleResponse(TestData.getServerRegistrationResponse());
     }

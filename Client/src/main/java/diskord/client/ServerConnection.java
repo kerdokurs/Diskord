@@ -1,15 +1,19 @@
 package diskord.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.client.controllers.Controller;
+
 import diskord.client.controllers.ControllerLogin;
 import diskord.payload.Payload;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+
 import javafx.stage.Stage;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.tools.picocli.CommandLine;
@@ -22,9 +26,11 @@ import java.nio.channels.SocketChannel;
 import java.util.*;
 
 public class ServerConnection implements Runnable{
+
     // Server Connection
     private List<Controller> passiveListeners = new ArrayList<>();
     private HashMap<UUID,Controller> responseWaitingControllers = new HashMap<>();
+
     private final InetSocketAddress address;
     private Logger logger = LogManager.getLogger(getClass().getName());
     private final ObjectMapper mapper = new ObjectMapper();
@@ -38,6 +44,7 @@ public class ServerConnection implements Runnable{
     // Client UI handling
     private List<Stage> currentlyOpenStages = new ArrayList<>();
     private Stage mainStage;
+
 
     // This should run on a new thread separate from the UI
     public ServerConnection(final InetSocketAddress address, Stage mainStage) {
@@ -84,8 +91,21 @@ public class ServerConnection implements Runnable{
         currentlyOpenStages.add(stage);
     }
 
+    /**
+     * Method that sends payload to server and adds listener for server response.
+     * @param payload The payload that is sent to server
+     * @param controller The controller that is called when server responds
+     * @throws IOException
+     */
+    public void writeWithResponse(Payload payload, Controller controller) throws IOException {
+        //TODO Handle IOException
+        listeners2.put(payload.getId(),controller);
+        write(payload);
+    }
+
     @Override
     public void run() {
+
         Platform.setImplicitExit(false);
         while (true){
             try (final SocketChannel channel = SocketChannel.open(address)) {
@@ -125,6 +145,7 @@ public class ServerConnection implements Runnable{
                             //TODO implement passive listener
                         }
                     }
+
                 }
             } catch (final IOException err) {
                 logger.error("ServerConnection.run: " + err);
@@ -153,7 +174,9 @@ public class ServerConnection implements Runnable{
     }
 
     public void write(final Payload payload) throws IOException {
+
         write(payload.toJson(mapper).concat("\n").getBytes());
+
     }
 
     public void write(final byte[] data) throws IOException {
