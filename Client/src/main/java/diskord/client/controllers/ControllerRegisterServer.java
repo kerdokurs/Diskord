@@ -1,6 +1,7 @@
 package diskord.client.controllers;
 
 import diskord.client.ChatFile;
+import diskord.client.ChatFileType;
 import diskord.client.ServerConnection;
 import diskord.client.TestData;
 import diskord.payload.Payload;
@@ -110,16 +111,18 @@ public class ControllerRegisterServer implements Controller{
         ChatFile chatFile = new ChatFile(
                 UUID.randomUUID(),
                 serverIconFile.getName(),
-                Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())));
+                Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())),
+                ChatFileType.IMAGE);
         // craft payload to server
 
-        Payload createServerPayload = new Payload();
-        createServerPayload.setType(PayloadType.REGISTER_SERVER);
-        createServerPayload.putBody("icon",chatFile);
-        createServerPayload.putBody("name",fxTextFieldServerName.getText());
-        createServerPayload.putBody("description",fxTextBoxServerDescription.getText());
+        Payload request = new Payload();
+        request.setJwt(parentController.currentUser.getUserToken());
+        request.setType(PayloadType.REGISTER_SERVER);
+        request.putBody("icon",chatFile);
+        request.putBody("name",fxTextFieldServerName.getText());
+        request.putBody("description",fxTextBoxServerDescription.getText());
 
-        //TODO Send server registration payload
+        serverConnection.writeWithResponse(request,this);
         //TODO Remove test data
         handleResponse(TestData.getServerRegistrationResponse());
     }

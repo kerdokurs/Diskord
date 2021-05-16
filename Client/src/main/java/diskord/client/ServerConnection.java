@@ -1,12 +1,9 @@
 package diskord.client;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.client.controllers.Controller;
 import diskord.payload.Payload;
-import javafx.stage.Stage;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -19,8 +16,8 @@ import java.util.*;
 
 public class ServerConnection implements Runnable{
 
-    private List<Controller> listeners = new ArrayList<>();
-    private HashMap<UUID,Controller> listeners2 = new HashMap<>();
+    private List<Controller> passiveListeners = new ArrayList<>();
+    private HashMap<UUID,Controller> responseWaitingControllers = new HashMap<>();
     private final InetSocketAddress address;
     private Logger logger = LogManager.getLogger(getClass().getName());
     private final ObjectMapper mapper = new ObjectMapper();
@@ -44,17 +41,22 @@ public class ServerConnection implements Runnable{
      */
     public void writeWithResponse(Payload payload, Controller controller) throws IOException {
         //TODO Handle IOException
-        listeners2.put(payload.getId(),controller);
-        write(payload);
+        responseWaitingControllers.put(payload.getId(),controller);
+        //write(payload);
+    }
+
+    public void addListener(Controller controller){
+
     }
 
     @Override
     public void run() {
+
         try (final SocketChannel channel = SocketChannel.open(address)) {
+
             this.channel = channel;
             //channel.configureBlocking(false);
 
-            System.out.println("client has started");
 
             while (!Thread.currentThread().isInterrupted()) {
                 // idk if we should read all the data we can and process it on the go
@@ -63,8 +65,8 @@ public class ServerConnection implements Runnable{
                 if(channel.isConnected()){
                     final Payload payload = read();
                     //TODO Handle return types.!
-                    listeners2.get(payload.getResponseTo()).handleResponse(payload);
-                    listeners2.remove(payload.getResponseTo());
+                    responseWaitingControllers.get(payload.getResponseTo()).handleResponse(payload);
+                    responseWaitingControllers.remove(payload.getResponseTo());
                 }
             }
 

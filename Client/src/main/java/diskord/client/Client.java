@@ -21,18 +21,20 @@ public class Client extends Application {
   @Override
   public void start(final Stage stage) throws IOException {
     // Establish connection to server
-    //TODO fix server client connection
-    //ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192));
-    //Thread serverThread = new Thread(serverConnection);
+    ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192));
+    Thread serverThread = new Thread(serverConnection);
+    //TODO Connect to server
     //serverThread.start();
 
     // Show login screen
     FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
     Parent loginRoot = (Parent)loginLoader.load();
     ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
+    // Make stage not resizable
+    stage.setResizable(false);
     // Pass main stage and serverConnection to stage
     loginController.setMainStage(stage);
-    //loginController.setServerConnection(serverConnection);
+    loginController.setServerConnection(serverConnection);
     loginController.init();
     stage.setTitle("Login");
     stage.setScene(new Scene(loginRoot));

@@ -1,6 +1,7 @@
 package diskord.client.controllers;
 
 import diskord.client.ChatFile;
+import diskord.client.ChatFileType;
 import diskord.client.ServerConnection;
 import diskord.client.TestData;
 import diskord.payload.Payload;
@@ -100,15 +101,17 @@ public class ControllerRegisterChannel implements Controller{
         ChatFile chatFile = new ChatFile(
                 UUID.randomUUID(),
                 channelIconFile.getName(),
-                Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())));
+                Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())),
+                ChatFileType.IMAGE);
         // craft payload to server
 
-        Payload createChannelPayload = new Payload();
-        createChannelPayload.setType(PayloadType.REGISTER_CHANNEL);
-        createChannelPayload.putBody("chatFile",chatFile);
-        createChannelPayload.putBody("name",fxTextFieldChannelName.getText());
+        Payload request = new Payload();
+        request.setJwt(parentController.currentUser.getUserToken());
+        request.setType(PayloadType.REGISTER_CHANNEL);
+        request.putBody("chatFile",chatFile);
+        request.putBody("name",fxTextFieldChannelName.getText());
 
-        //TODO Send channel registration payload
+        serverConnection.writeWithResponse(request,this);
         //TODO Remove test data
         handleResponse(TestData.getChannelRegistrationResponse());
     }

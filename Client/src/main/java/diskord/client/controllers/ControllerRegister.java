@@ -51,9 +51,7 @@ public class ControllerRegister implements Controller{
     private File userIconFile;
 
     public void init(){
-        // Add controller to serverConnection listener
-        //TODO fix server client connection
-        //serverConnection.addListener(this);
+        // This controller does not need active listener from server connection
         fxLabelMessage.setAlignment(Pos.CENTER);
     }
 
@@ -71,12 +69,12 @@ public class ControllerRegister implements Controller{
 
         if (passwordValid) {
             // Register client and get response code
-            Payload registerPayload = new Payload();
-            registerPayload.setType(PayloadType.REGISTER);
-            registerPayload.putBody("username",fxTextFieldUsername.getText());
-            registerPayload.putBody("password",fxTextFieldPassword.getText());
-            registerPayload.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
-            //serverConnection.write(registerPayload);
+            Payload request = new Payload();
+            request.setType(PayloadType.REGISTER);
+            request.putBody("username",fxTextFieldUsername.getText());
+            request.putBody("password",fxTextFieldPassword.getText());
+            request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            serverConnection.writeWithResponse(request,this);
             //TODO replace test data
             handleResponse(TestData.getRegister());
         } else {
@@ -163,15 +161,16 @@ public class ControllerRegister implements Controller{
             case REGISTER_ERROR:
                 Platform.runLater(() -> {
                     PayloadBody serverResponseBody = response.getBody();
-                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
                     fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+                    fxLabelMessage.setText((String)serverResponseBody.get("message"));
+
                 });
                 break;
 
             default:
                 Platform.runLater(() -> {
-                    fxLabelMessage.setText("Server sent unrecognisable payload type: " + response.getType());
-                    fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
+
+
                 });
                 break;
         }

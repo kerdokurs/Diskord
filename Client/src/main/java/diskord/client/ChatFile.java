@@ -14,11 +14,15 @@ public class ChatFile {
     private final String fileName;
     @Getter
     private final String base64File;
+    @Getter
+    private final ChatFileType fileType;
 
-    public ChatFile(UUID fileUUID, String fileName, String base64File) {
+
+    public ChatFile(UUID fileUUID, String fileName, String base64File,ChatFileType fileType) {
         this.fileUUID = fileUUID;
         this.fileName = fileName;
         this.base64File = base64File;
+        this.fileType = fileType;
     }
 
     /**

@@ -1,22 +1,19 @@
 package diskord.client;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
-import javafx.animation.SequentialTransition;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class TestData {
     // Main stage
-    public static List<User> getTestUsers(int numberOfUsers){
-        List<User> users = new ArrayList<>();
+    public static User[] getTestUsers(int numberOfUsers){
+        User[] users = new User[numberOfUsers];
         for (int i = 0; i< numberOfUsers; i++){
-            users.add(
+            users[i] =
                     new User(
                             "Test user: " + i,
                             UUID.randomUUID(),
-                            base64Icon()));
+                            base64Icon());
         }
         return users;
     }
@@ -48,46 +45,48 @@ public class TestData {
 
     public static Payload getUserSuscribedServers(){
         Payload response = new Payload();
-        response.setType(PayloadType.INFO_SERVERS);
+        response.setType(PayloadType.INFO_USER_SERVERS_OK);
 
-        List<Server> servers = new ArrayList<>();
-        servers.add(new Server(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"),
+        Set<Server> joined = new HashSet<>();
+        joined.add(new Server(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"),
                 "Test server1",
                 "Test desc",
-                base64Icon(),
-                null)); // Request server channels separately
-        response.putBody("servers", servers);
+                base64Icon())); // Request server channels separately
+        response.putBody("joined", joined);
+        Set<UUID> privileged = new HashSet<>();
+        privileged.add(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"));
+        response.putBody("privileged", privileged);
         return response;
     }
 
-    public static Payload getUserPrivilegedServers(){
+
+    public static Payload getChannelJoin(){
         Payload response = new Payload();
-        response.setType(PayloadType.INFO_USER_PRIVILEGED_SERVERS);
-        List<UUID> servers = new ArrayList<>();
-        servers.add(UUID.fromString("5a5ecd37-c5af-4983-90ea-53f1f18491dc"));
-        response.putBody("servers",servers);
+        response.setType(PayloadType.JOIN_CHANNEL_OK);
+        response.putBody("users", getTestUsers(10));
         return response;
     }
 
-
+    public static Payload getSendChat(){
+        Payload response = new Payload();
+        response.setType(PayloadType.MSG_OK);
+        return response;
+    }
 
     public static Payload getServerChannels(UUID serverUUID){
         Payload response = new Payload();
-        response.setType(PayloadType.INFO_CHANNELS);
+        response.setType(PayloadType.INFO_CHANNELS_OK);
 
         List<Channel> channels = new ArrayList<>();
         channels.add(new Channel("Test channel 1",
                 UUID.fromString("b760dbb0-d626-4579-8997-2d50037bb369"),
-                base64Icon(),
-                serverUUID));
+                base64Icon()));
         channels.add(new Channel("Test channel 2",
                 UUID.fromString("79e4a52b-6ab2-43b4-b142-2e12a0476c79"),
-                base64Icon(),
-                serverUUID));
+                base64Icon()));
         channels.add(new Channel("Test channel 3",
                 UUID.fromString("ba793031-f95b-445b-9f2f-2ddfe5b1cf20"),
-                base64Icon(),
-                serverUUID));
+                base64Icon()));
         response.putBody("channels", channels);
         return response;
     }
@@ -120,6 +119,14 @@ public class TestData {
     public static Payload getRegister(){
         Payload response = new Payload();
         response.setType(PayloadType.REGISTER_OK);
+        return response;
+    }
+
+    // Join server
+
+    public static Payload getJoinServer(){
+        Payload response = new Payload();
+        response.setType(PayloadType.JOIN_SERVER_OK);
         return response;
     }
 }

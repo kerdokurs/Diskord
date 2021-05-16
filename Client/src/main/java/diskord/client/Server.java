@@ -15,14 +15,14 @@ public class Server {
     @Getter
     private final String base64Icon;
     @Getter
-    private final List<Channel> channels;
+    private final String joinID;
 
-    public Server(UUID id, String name, String description, String base64Icon, List<Channel> channels) {
+    public Server(UUID id, String name, String description, String base64Icon) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.base64Icon = base64Icon;
-        this.channels = channels;
+        this.joinID = "Join ID: " + id.toString().substring(0,7);
     }
 
     /**
