@@ -2,6 +2,7 @@ package diskord.server.handlers;
 
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
+import diskord.payload.ResponseType;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.user.Role;
@@ -100,7 +101,6 @@ public class RegisterHandler extends Handler {
         .setResponseTo(request.getId())
         .putBody(BODY_TOKEN, loginToken);
     }
-
     return response;
   }
 }

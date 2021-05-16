@@ -24,7 +24,7 @@ public class RoomController {
         .putBody(PayloadBody.BODY_MESSAGE, "token not set");
 
     return new Payload()
-      .setType(PayloadType.INFO_SERVERS)
+      .setType(PayloadType.INFO_USER_SERVERS_OK)
       .setResponseTo(payload.getId())
       .putBody("servers", List.of(
         new Room()
