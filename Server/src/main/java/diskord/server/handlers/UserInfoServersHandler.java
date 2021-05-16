@@ -19,6 +19,7 @@ import java.util.*;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.INFO_USER_SERVERS_ERROR;
 import static diskord.payload.PayloadType.INFO_USER_SERVERS_OK;
+import static diskord.payload.ResponseType.TO_SELF;
 
 public class UserInfoServersHandler extends Handler{
   public UserInfoServersHandler(DatabaseManager dbManager, ServerHandler serverHandler) {
@@ -37,6 +38,7 @@ public class UserInfoServersHandler extends Handler{
   public Payload handleRequest(Payload request, Channel channel) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
+    response.setResponseType(TO_SELF);
 
     try{
       DecodedJWT decoded = Auth.decode(request.getJwt());

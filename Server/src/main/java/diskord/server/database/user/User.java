@@ -62,6 +62,10 @@ public class User {
 
   @Getter
   @Setter
+  private String icon;
+
+  @Getter
+  @Setter
   @NotNull
   @ElementCollection
   @Column(
@@ -85,11 +89,12 @@ public class User {
   )
   private Date updatedAt;
 
-  public User(final String username, final String password, final Role role) {
+  public User(final String username, final String password, final Role role, final String icon) {
     this.username = username;
     this.password = Hash.hash(password);
     this.joinedServers = new HashSet<>();
     this.privilegedServers = new HashSet<>();
+    this.icon = icon;
 
   }
 

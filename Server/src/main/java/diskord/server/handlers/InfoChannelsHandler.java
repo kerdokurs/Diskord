@@ -13,8 +13,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadBody.SERVER_ID;
 import static diskord.payload.PayloadType.INFO_CHANNELS_ERROR;
 import static diskord.payload.PayloadType.INFO_CHANNELS_OK;
+import static diskord.payload.ResponseType.TO_SELF;
 
 public class InfoChannelsHandler extends Handler{
 
@@ -34,14 +36,13 @@ public class InfoChannelsHandler extends Handler{
   public Payload handleRequest(Payload request, Channel channel) {
     Payload response = new Payload();
     response.setResponseTo(request.getId());
+    response.setResponseType(TO_SELF);
 
     try{
-      //TODO: Figure out if client sends server UUID via jwt or sth else. currently assuming that UUID is in the jwt.
-      DecodedJWT decoded = Auth.decode(request.getJwt());
       List<diskord.server.database.channel.Channel> channelsByRoomId;
       try{
         channelsByRoomId =
-          ChannelTransactions.getChannelsByRoomId(dbManager, UUID.fromString(decoded.getSubject()));
+          ChannelTransactions.getChannelsByRoomId(dbManager, (UUID) request.getBody().get(SERVER_ID));
       } catch (Exception e){
         return response
           .setType(INFO_CHANNELS_ERROR)
