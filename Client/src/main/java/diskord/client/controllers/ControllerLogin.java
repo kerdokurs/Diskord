@@ -43,6 +43,7 @@ public class ControllerLogin implements Controller {
     public void init() {
         // This controller does not need any passive listeners in
 
+
         fxLabelLoginErrorMessage.setAlignment(Pos.CENTER);
         // Check if Diskord folder is created and write login properties to Appdata/diskord
         File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
@@ -79,6 +80,7 @@ public class ControllerLogin implements Controller {
         loginPayload.setType(PayloadType.LOGIN);
         loginPayload.putBody("username",fxTextFieldUsername.getText());
         loginPayload.putBody("password",fxTextFieldPassword.getText());
+
         serverConnection.writeWithResponse(loginPayload,this);
 
         //TODO replace test data
@@ -112,6 +114,7 @@ public class ControllerLogin implements Controller {
         registerStage.show();
         // Add newly created stage to serverConnection
         serverConnection.addStage(registerStage);
+
     }
 
     /**
@@ -170,7 +173,6 @@ public class ControllerLogin implements Controller {
                     mainStage.setScene(new Scene(mainRoot));
                     mainStage.show();
                 });
-
                 break;
             case LOGIN_ERROR:
                 // All FX interaction must be done in this

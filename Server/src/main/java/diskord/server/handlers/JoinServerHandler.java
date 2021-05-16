@@ -16,6 +16,7 @@ import java.util.UUID;
 
 import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.JOIN_SERVER_ERROR;
+import static diskord.payload.PayloadType.JOIN_SERVER_OK;
 import static diskord.payload.ResponseType.TO_SELF;
 
 public class JoinServerHandler extends Handler {
@@ -75,6 +76,6 @@ public class JoinServerHandler extends Handler {
       //error handle
     }
 
-    return response;
+    return response.setType(JOIN_SERVER_OK);
   }
 }

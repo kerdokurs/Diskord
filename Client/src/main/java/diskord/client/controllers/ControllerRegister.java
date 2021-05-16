@@ -5,7 +5,9 @@ import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
+
 import diskord.payload.ResponseType;
+
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
@@ -52,7 +54,9 @@ public class ControllerRegister implements Controller{
     private File userIconFile;
 
     public void init(){
+
         // This controller does not need active listener from server connection
+
         fxLabelMessage.setAlignment(Pos.CENTER);
     }
 
@@ -62,7 +66,9 @@ public class ControllerRegister implements Controller{
      * register by server side, it will notify user!
      */
     public void fxEventButtonActionRegister() throws IOException {
+
         if(userIconFile == null || !userIconFile.exists()){
+
             fxLabelMessage.setTextFill(Color.color(1, 0, 0));
             fxLabelMessage.setText("User icon not found!");
             return;
@@ -70,6 +76,7 @@ public class ControllerRegister implements Controller{
 
         if (passwordValid) {
             // Register client and get response code
+
             Payload request = new Payload();
             request.setType(PayloadType.REGISTER);
             request.putBody("username",fxTextFieldUsername.getText());
@@ -78,6 +85,7 @@ public class ControllerRegister implements Controller{
             serverConnection.writeWithResponse(request,this);
             //TODO replace test data
             //handleResponse(TestData.getRegister());
+
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
@@ -162,14 +170,17 @@ public class ControllerRegister implements Controller{
             case REGISTER_ERROR:
                 Platform.runLater(() -> {
                     PayloadBody serverResponseBody = response.getBody();
+
                     fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
                     fxLabelMessage.setText((String)serverResponseBody.get("message"));
+
 
                 });
                 break;
 
             default:
                 Platform.runLater(() -> {
+
 
 
                 });

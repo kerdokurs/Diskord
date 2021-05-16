@@ -1,5 +1,6 @@
 package diskord.server.init;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
@@ -15,6 +16,7 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.EnumMap;
 import java.util.Map;
@@ -138,7 +140,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @param payload payload to send
    */
   public void send(final Channel channel, final Payload payload) {
-    channel.writeAndFlush(payload); // TODO: test & not working for sure
+    //channel.writeAndFlush(payload); //TODO: test & not working for sure
   }
 
   /**

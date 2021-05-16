@@ -5,6 +5,7 @@ public enum PayloadType {
   BINK, // ping, aga meie ikooniga sobivas kirjastiilis.
   BONK,
 
+
   // MSG body properties
   // Response
   // Key: "userUuid" value: (UUID) users uuid who sent message
@@ -80,6 +81,7 @@ public enum PayloadType {
   // Key: "message" value: (String) error message
   INFO_CHANNELS_ERROR,
 
+
   INVALID,
   AUTH_ERROR,
   CHAT_ERROR,
@@ -92,8 +94,6 @@ public enum PayloadType {
   // LOGIN_OK body properties
   // Key: "username" value: (String) Username
 
-  //TODO UUID TO ID line 82
-
   // Key: "uuid" value: (UUID) user UUID
   // Key: "token" value: (String) auth token
   // Key: "icon" value: (String) base64icon
@@ -105,6 +105,7 @@ public enum PayloadType {
   // REGISTER body properties
   // Key: "username" value: (String) username
   // Key: "password" value: (String) password
+
   // Key: "icon" value: (String) base64 icon
   REGISTER,
   // REGISTER_OK body properties
@@ -112,6 +113,7 @@ public enum PayloadType {
   REGISTER_OK,
   // REGISTER_ERROR body properties
   // TODO Typo Message -> message
+
   // Key: "Message" value: (String) error message
   REGISTER_ERROR,
 

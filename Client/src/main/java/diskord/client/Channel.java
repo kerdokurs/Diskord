@@ -20,6 +20,7 @@ public class Channel {
         this.name = name;
         this.uuid = uuid;
         this.base64Icon = base64Icon;
+
     }
 
     public Image getChannelIconFromBase64(){
