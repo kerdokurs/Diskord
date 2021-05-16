@@ -10,8 +10,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import javax.persistence.*;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-import java.util.Date;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "users")
@@ -54,12 +53,22 @@ public class User {
   @Getter
   @Setter
   @NotNull
+  @ElementCollection
   @Column(
-      name = "role",
-      nullable = false
+    name = "joined_servers",
+    nullable = false
   )
-  @Enumerated(EnumType.STRING)
-  private Role role;
+  private Set<UUID> joinedServers;
+
+  @Getter
+  @Setter
+  @NotNull
+  @ElementCollection
+  @Column(
+    name = "admin_servers",
+    nullable = false
+  )
+  private Set<UUID> privilegedServers;
 
   @Getter
   @CreationTimestamp
@@ -79,9 +88,43 @@ public class User {
   public User(final String username, final String password, final Role role) {
     this.username = username;
     this.password = Hash.hash(password);
-    this.role = role;
+    this.joinedServers = new HashSet<>();
+    this.privilegedServers = new HashSet<>();
+
   }
 
+  /**
+   * This method updates the hashmap that is stored in the serverPrivileges column for the User row in the db.
+   * It checks if the user has already joined the server with the given serverId, if not, the method
+   * will add the server id to the map as a key and the corresponding Role as value.
+   * @param serverId The server id that the user is joining
+   * @param role
+   */
+//  public void setPrivilegesMap(String serverId, Role role) {
+//    try{
+//      if(!privilegesMap.containsKey(serverId)){
+//        privilegesMap.put(serverId, role);
+//      } else {
+//        System.out.println("User has already joined this server. [Server id: " + serverId + " ]");
+//      }
+//    } catch (Exception e){
+//      System.out.println("Problem with the User's server privileges map."); //TODO replace with logger
+//      e.printStackTrace();
+//    }
+//  }
+//
+//  public void updatePrivileges(String serverId, Role newRole){
+//    try{
+//      if(privilegesMap.containsKey(serverId)){
+//        privilegesMap.put(serverId, newRole);
+//      } else {
+//        setPrivilegesMap(serverId, newRole);
+//      }
+//    } catch (Exception e){
+//      System.out.println("Problem updating user role in the server.");
+//      e.printStackTrace();
+//    }
+//  }
   public User() {
   }
 
@@ -91,7 +134,6 @@ public class User {
         "id=" + id +
         ", username='" + username + '\'' +
         ", password='" + password + '\'' +
-        ", role=" + role +
         ", createdAt=" + createdAt +
         ", updatedAt=" + updatedAt +
         '}';

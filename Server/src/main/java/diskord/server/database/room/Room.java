@@ -1,6 +1,7 @@
 package diskord.server.database.room;
 
 import lombok.Getter;
+import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.*;
@@ -11,6 +12,7 @@ import java.util.UUID;
 public class Room {
   @Id
   @Getter
+  @Setter
   @GeneratedValue(generator = "UUID")
   @GenericGenerator(
     name = "UUID",
@@ -25,5 +27,18 @@ public class Room {
   private UUID id;
 
   @Getter
-  private String title;
+  @Setter
+  private String name;
+
+  @Getter
+  @Setter
+  private String description;
+
+  @Getter
+  @Setter
+  private String icon;
+
+  @Getter
+  @Setter
+  private String joinId;
 }

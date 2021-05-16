@@ -42,3 +42,5 @@ public class Client extends Application {
 
   }
 }
+
+//TODO: clientside implementations of message validity (0 < length <= 255, length ∈ N)

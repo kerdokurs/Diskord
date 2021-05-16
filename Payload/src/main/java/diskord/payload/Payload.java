@@ -36,6 +36,10 @@ public class Payload implements Serializable {
   @Setter
   private PayloadBody body;
 
+  @Getter
+  @Setter
+  private ResponseType responseType;
+
   public Payload() {
     timestamp = new Date();
     body = new PayloadBody();
@@ -51,7 +55,7 @@ public class Payload implements Serializable {
   }
 
   public Payload putBody(final String key, final Object value) {
-    getBody().put(key, value);
+    body.put(key, value);
     return this;
   }
 
