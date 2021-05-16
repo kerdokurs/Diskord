@@ -69,7 +69,7 @@ public enum PayloadType {
   // Request to server
   //INFO_CHANNELS body properties
   //TODO serverUUID -> server_id
-  // Key: "serverUUID" value: (UUID) Server UUID
+  // Key: "serverId" value: (UUID) Server UUID
   INFO_CHANNELS,
   // Response from server
   //INFO_CHANNELS_OK body properties

@@ -42,11 +42,25 @@ public class ServerConnection implements Runnable{
     public void writeWithResponse(Payload payload, Controller controller) throws IOException {
         //TODO Handle IOException
         responseWaitingControllers.put(payload.getId(),controller);
-        //write(payload);
+        write(payload);
     }
 
+    /**
+     * Method adds controller to passive listener. When server sends payload that
+     * was not expected, it will get all controllers that are waiting for that kind of
+     * payload types.
+     * @param controller Controller that is added to passive listener.
+     */
     public void addListener(Controller controller){
+        passiveListeners.add(controller);
+    }
 
+    /**
+     * Method removes controller from passive listener.
+     * @param controller The controller that is removed
+     */
+    public void removeListeners(Controller controller){
+        passiveListeners.remove(controller);
     }
 
     @Override
@@ -76,15 +90,12 @@ public class ServerConnection implements Runnable{
         }
     }
 
+    // No idea
     public void stop() {
         Thread.currentThread().interrupt();
-
-        System.out.println("client has stopped");
     }
 
-    // See https://github.com/kerdokurs/Diskord/blob/6e015303cd5af564638c8a13da237fcd7eacae10/Server/src/main/java/diskord/server/Server.java#L107
-    // for more info on how the server channel is implemented.
-    // Keep in mind that we will only have a single channel on this client.
+
     public Payload read() throws IOException {
         // TODO: Add checks if reading is possible
         final ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
@@ -103,12 +114,10 @@ public class ServerConnection implements Runnable{
     }
 
     public void write(final Payload payload) throws IOException {
-
         write(payload.toJson(mapper).getBytes());
     }
 
     public void write(final byte[] data) throws IOException {
-        // TODO: Add checks if writing is possible
         final ByteBuffer buffer = ByteBuffer.allocate(4 + data.length);
         buffer.putInt(data.length);
         buffer.put(data);
