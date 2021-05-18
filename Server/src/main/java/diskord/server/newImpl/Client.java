@@ -1,5 +1,6 @@
 package diskord.server.newImpl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
@@ -13,13 +14,12 @@ import io.netty.handler.codec.Delimiters;
 import io.netty.handler.codec.string.StringDecoder;
 import io.netty.handler.codec.string.StringEncoder;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-
 public class Client {
+  final ObjectMapper mapper = new ObjectMapper();
   private final String host;
   private final int port;
+  private String jwt;
+  private Channel channel;
 
   public Client(final String host, final int port) {
     this.host = host;
@@ -37,45 +37,86 @@ public class Client {
       Bootstrap bootstrap = new Bootstrap()
         .group(group)
         .channel(NioSocketChannel.class)
-        .handler(new ClientInitializer());
+        .handler(new ClientInitializer(this));
 
-      Channel channel = bootstrap.connect(host, port).sync().channel();
-      BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+      channel = bootstrap.connect(host, port).sync().channel();
 
-      String line;
-      while ((line = in.readLine()) != null && !line.isEmpty()) {
-        Payload payload = new Payload()
-          .setType(PayloadType.MSG)
-          .putBody("message", line);
 
-        ObjectMapper mapper = new ObjectMapper();
+//      Payload request = new Payload()
+//        .setType(PayloadType.REGISTER)
+//        .putBody("username", "kerdo")
+//        .putBody("password", "kerdo");
+//
+//      channel.writeAndFlush(request.toJson(mapper) + "\r\n");
 
-        final String data = payload.toJson(mapper);
-        System.out.println(data);
-        channel.writeAndFlush(data + "\r\n");
-      }
+      Payload request = new Payload()
+        .setType(PayloadType.LOGIN)
+        .putBody("username", "mannu")
+        .putBody("password", "mannu");
+
+      channel.writeAndFlush(request.toJson(mapper) + "\r\n");
+
+
+//      String line;
+//      while ((line = in.readLine()) != null && !line.isEmpty()) {
+//        Payload payload = new Payload()
+//          .setType(PayloadType.MSG)
+//          .putBody("message", line);
+//
+//        ObjectMapper mapper = new ObjectMapper();
+//
+//        final String data = payload.toJson(mapper);
+//        System.out.println(data);
+//        channel.writeAndFlush(data + "\r\n");
+//      }
     } catch (final InterruptedException e) {
       e.printStackTrace();
-    } catch (IOException e) {
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
+  }
+
+  public void setJwt(String jwt) {
+    this.jwt = jwt;
+
+    Payload request = new Payload()
+      .setType(PayloadType.INFO_USER_SERVERS)
+      .setJwt(jwt);
+
+    try {
+      channel.writeAndFlush(request.toJson(mapper) + "\r\n");
+    } catch (JsonProcessingException e) {
       e.printStackTrace();
     }
   }
 }
 
 class ClientInitializer extends ChannelInitializer<SocketChannel> {
+  private Client client;
+
+  public ClientInitializer(Client client) {
+    this.client = client;
+  }
+
   @Override
   protected void initChannel(final SocketChannel socketChannel) throws Exception {
     ChannelPipeline pipeline = socketChannel.pipeline();
 
-    pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));
+    pipeline.addLast("framer", new DelimiterBasedFrameDecoder(65536, Delimiters.lineDelimiter()));
     pipeline.addLast("encoder", new StringEncoder());
     pipeline.addLast("decoder", new StringDecoder());
 
-    pipeline.addLast("handler", new ClientHandler());
+    pipeline.addLast("handler", new ClientHandler(client));
   }
 }
 
 class ClientHandler extends SimpleChannelInboundHandler<String> {
+  private final Client client;
+
+  public ClientHandler(final Client client) {
+    this.client = client;
+  }
+
   // List<Controller> controllers;
   // Map<UUID, Controller> controllers;
   @Override
@@ -84,6 +125,8 @@ class ClientHandler extends SimpleChannelInboundHandler<String> {
 //    System.out.println(payload);
     System.out.printf("received %s%n", s);
     Payload payload = Payload.fromJson(new ObjectMapper(), s);
+    if (payload.getType().equals(PayloadType.LOGIN_OK)) client.setJwt((String) payload.getBody().get("token"));
+
     // controllers.handlePayload(payload);
     // Controller c = controllers.get(payload.getResponseTo());
     // if (c == null) defaultController.handlePayload(payload);

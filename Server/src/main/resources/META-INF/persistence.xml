@@ -17,9 +17,10 @@
       <property name="javax.persistence.jdbc.password" value=""/>
       <property name="dialect" value="org.hibernate.dialect.H2Dialect"/>
       <property name="hibernate.show_sql" value="true"/>
-      <!--      <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://ec2-34-254-69-72.eu-west-1.compute.amazonaws.com/dc3g2vvml3lec5"/>-->
-      <!--      <property name="javax.persistence.jdbc.user" value="pxdjljvawlaixg"/>-->
-      <!--      <property name="javax.persistence.jdbc.password" value="9eb2401bce2907203279c1a5efae62375620b0d41dbc147dd920bb01f7d88248"/>-->
+<!--            <property name="javax.persistence.jdbc.url" value="jdbc:postgresql://ec2-34-254-69-72.eu-west-1.compute.amazonaws.com/dc3g2vvml3lec5"/>-->
+<!--            <property name="javax.persistence.jdbc.user" value="pxdjljvawlaixg"/>-->
+<!--            <property name="javax.persistence.jdbc.password" value="9eb2401bce2907203279c1a5efae62375620b0d41dbc147dd920bb01f7d88248"/>-->
+<!--            <property name="dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>-->
     </properties>
   </persistence-unit>
 </persistence>
