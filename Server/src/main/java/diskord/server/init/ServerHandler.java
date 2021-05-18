@@ -16,7 +16,6 @@ import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
 import java.util.EnumMap;
 import java.util.Map;
@@ -40,12 +39,26 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     this.server = server;
     dbManager = server.getDbManager();
 
+    registerHandler(BINK, new BinkHandler(dbManager, this));
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
     registerHandler(JOIN_SERVER, new JoinServerHandler(dbManager, this));
     registerHandler(INFO_USER_SERVERS, new UserInfoServersHandler(dbManager, this));
     registerHandler(INFO_CHANNELS, new InfoChannelsHandler(dbManager, this));
 
+//    final User user = UserTransactions.getUserByUsername(dbManager, "kerdo");
+//    System.out.println(user);
+//    final List<JoinedServer> userJoinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
+//    for (final JoinedServer userJoinedRoom : userJoinedRooms) {
+//      System.out.printf("Deleted room %s%n", userJoinedRoom);
+//      dbManager.delete(userJoinedRoom);
+//    }
+//
+//    final List<Room> rooms = RoomTransactions.getRooms(dbManager);
+//    for (final Room room : rooms) {
+//      System.out.printf("Deleted room %s%n", room);
+//      dbManager.delete(room);
+//    }
   }
 
   @Override
@@ -140,7 +153,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @param payload payload to send
    */
   public void send(final Channel channel, final Payload payload) {
-    //channel.writeAndFlush(payload); //TODO: test & not working for sure
+    try {
+      channel.writeAndFlush(payload.toJson(new ObjectMapper()) + "\r\n");
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
   }
 
   /**
