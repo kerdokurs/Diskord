@@ -1,5 +1,8 @@
 package diskord.server.database;
 
+import diskord.server.database.room.Room;
+import diskord.server.database.transactions.RoomTransactions;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -7,11 +10,18 @@ import javax.persistence.Persistence;
 import java.util.List;
 
 public class DatabaseManager {
-  private final EntityManagerFactory factory;
+  public EntityManagerFactory factory;
 
   public DatabaseManager() {
-    factory = Persistence.createEntityManagerFactory("DiskordServer.database");
+    createEntityManagerFactory();
     System.out.println("db manager has been initialized");
+
+    final Room room = new Room()
+      .setName("Test room 2")
+      .setDescription("Test description 2")
+      .setJoinId("test1");
+    save(room);
+    System.out.println(room);
   }
 
   public void close() {
@@ -68,6 +78,7 @@ public class DatabaseManager {
         em.persist(obj);
         et.commit();
       } catch (final Exception e) {
+        e.printStackTrace();
         et.rollback();
 
         return false;
@@ -139,6 +150,8 @@ public class DatabaseManager {
    * @return result of the transaction
    */
   public <T> T runTransaction(final Transaction<T> transaction) {
+    if (!factory.isOpen()) createEntityManagerFactory();
+
     final EntityManager em = factory.createEntityManager();
 
     final T t = transaction.execute(em);
@@ -146,5 +159,10 @@ public class DatabaseManager {
     em.close();
 
     return t;
+  }
+
+  public void createEntityManagerFactory() {
+    if (factory == null || !factory.isOpen())
+      factory = Persistence.createEntityManagerFactory("DiskordServer.database");
   }
 }
