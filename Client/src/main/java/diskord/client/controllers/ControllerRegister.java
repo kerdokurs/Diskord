@@ -83,8 +83,6 @@ public class ControllerRegister implements Controller{
             request.putBody("password",fxTextFieldPassword.getText());
             request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
             serverConnection.writeWithResponse(request,this);
-            //TODO replace test data
-            //handleResponse(TestData.getRegister());
 
         } else {
             fxLabelMessage.setText("Account settings are not valid!");

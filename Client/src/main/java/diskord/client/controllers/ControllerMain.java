@@ -227,8 +227,8 @@ public class ControllerMain implements Controller{
             case INFO_USER_SERVERS_OK:
                 // Clear current items in listview
                 Platform.runLater(() -> fxListViewServers.getItems().clear());
-                Set<Server> joined = Set.of();// ((List<Server>) responseBody.get("joined")).stream().collect(Collectors.toSet());
-                Set<UUID> privileged = Set.of();//((Set<UUID>) responseBody.get("privileged")).stream().collect(Collectors.toSet());
+                Set<Server> joined = (Set<Server>) responseBody.get("joined");
+                Set<UUID> privileged = (Set<UUID>) responseBody.get("privileged");
                 currentUser.setPrivilegedServers(new ArrayList<>(privileged));
                 for (Server server:joined) {
 
@@ -341,14 +341,7 @@ public class ControllerMain implements Controller{
         request.setJwt(currentUser.getUserToken());
         request.setType(PayloadType.INFO_USER_SERVERS);
         serverConnection.writeWithResponse(request,this);
-
-        //TODO Replace test data
-        handleResponse(TestData.getUserSuscribedServers());
     }
-
-
-
-
 
     /**
      * Method to set Main stage. It is needed when opening new stage and making javaFX
@@ -752,80 +745,6 @@ public class ControllerMain implements Controller{
 
         // Add newly created stage to serverConnection
         serverConnection.addStage(channelRegisterStage);
-    }
-
-    public void fxEventListViewChannelsContextMenuDeleteOnAction(){
-        ListViewChannelRow selectedRow = fxListViewChannel.getSelectionModel().getSelectedItem();
-        if(selectedRow != null){
-            logger.info("ListViewChannelsContextMenuDeleteOnAction" + selectedRow.toString());
-        }
-    }
-
-    public void fxEventListViewServersContextMenuJoinOnAction(){
-        ListViewServerRow selectedRow = fxListViewServers.getSelectionModel().getSelectedItem();
-        if(selectedRow != null){
-            logger.info("ListViewServersContextMenuJoinOnAction:" + selectedRow.toString());
-        }
-    }
-
-    public void fxEventListViewServersContextMenuCreateOnAction() throws IOException {
-        logger.info("ListViewServersContextMenuCreateOnAction");
-
-        // Create stage for register window
-        Stage serverRegisterStage = new Stage();
-        // Set registerStage parent to current mainStage, so only registerStage can be clicked
-        serverRegisterStage.initModality(Modality.WINDOW_MODAL);
-        serverRegisterStage.initOwner(mainStage);
-        // Load fxml
-        FXMLLoader serverRegisterLoader = new FXMLLoader(getClass().getClassLoader().getResource("register_server.fxml"));
-        Parent registerRoot = (Parent)serverRegisterLoader.load();
-        ControllerRegisterServer serverRegisterController = serverRegisterLoader.getController();
-        // Pass main stage,parent controller and serverConnection to new controller
-        serverRegisterController.setMainStage(mainStage);
-        serverRegisterController.setServerConnection(serverConnection);
-        serverRegisterController.setParentController(this);
-        serverRegisterController.init();
-        serverRegisterStage.setTitle("Register server");
-        serverRegisterStage.setScene(new Scene(registerRoot));
-        serverRegisterStage.show();
-
-
-    }
-
-    public void fxEventListViewServersContextMenuDeleteOnAction(){
-        ListViewServerRow selectedRow = fxListViewServers.getSelectionModel().getSelectedItem();
-        if(selectedRow != null){
-            logger.info("ListViewServersContextMenuDeleteOnAction:" + selectedRow.toString());
-        }
-    }
-
-    public void fxEventListViewChannelsContextMenuJoinOnAction(){
-        ListViewChannelRow selectedRow = fxListViewChannel.getSelectionModel().getSelectedItem();
-        if(selectedRow != null){
-            logger.info("ListViewChannelsContextMenuJoinOnAction" + selectedRow.toString());
-        }
-    }
-
-    public void fxEventListViewChannelsContextMenuCreateOnAction() throws IOException {
-        logger.info("ListViewChannelsContextMenuCreateOnAction");
-
-        // Create stage for register window
-        Stage channelRegisterStage = new Stage();
-        // Set channelRegisterStage parent to current mainStage, so only channelRegisterStage can be clicked
-        channelRegisterStage.initModality(Modality.WINDOW_MODAL);
-        channelRegisterStage.initOwner(mainStage);
-        // Load fxml
-        FXMLLoader channelRegisterLoader = new FXMLLoader(getClass().getClassLoader().getResource("register_channel.fxml"));
-        Parent registerRoot = (Parent)channelRegisterLoader.load();
-        ControllerRegisterChannel channelRegisterController = channelRegisterLoader.getController();
-        // Pass main stage,parent controller and serverConnection to new controller
-        channelRegisterController.setMainStage(mainStage);
-        channelRegisterController.setServerConnection(serverConnection);
-        channelRegisterController.setParentController(this);
-        channelRegisterController.init();
-        channelRegisterStage.setTitle("Register channel");
-        channelRegisterStage.setScene(new Scene(registerRoot));
-        channelRegisterStage.show();
     }
 
     public void fxEventListViewChannelsContextMenuDeleteOnAction(){
