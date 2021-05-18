@@ -3,61 +3,172 @@ package diskord.client;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.client.controllers.Controller;
-
 import diskord.client.controllers.ControllerLogin;
-import diskord.client.netty.ClientInitializer;
 import diskord.payload.Payload;
-import diskord.payload.PayloadType;
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.*;
 import io.netty.channel.Channel;
-import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.DelimiterBasedFrameDecoder;
+import io.netty.handler.codec.Delimiters;
+import io.netty.handler.codec.string.StringDecoder;
+import io.netty.handler.codec.string.StringEncoder;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
-
 import javafx.stage.Stage;
 import lombok.Getter;
-import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.core.tools.picocli.CommandLine;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.charset.StandardCharsets;
+
 import java.util.*;
 
 public class ServerConnection implements Runnable {
     // Server Connection
     private List<Controller> passiveListeners = new ArrayList<>();
     private HashMap<UUID, Controller> responseWaitingControllers = new HashMap<>();
-    private final InetSocketAddress address;
+
     private Logger logger = LogManager.getLogger(getClass().getName());
-    private final ObjectMapper mapper = new ObjectMapper();
-    private Channel channel;
     @Getter
     private Deque<Payload> payloadsToRecive = new ArrayDeque<>();
     @Getter
     private Deque<Payload> payloadsToSend = new ArrayDeque<>();
-    private boolean readMessages = true;
+
 
     // Client UI handling
     private List<Stage> currentlyOpenStages = new ArrayList<>();
     private Stage mainStage;
 
+    // Netty
+    private Bootstrap bootstrap = new Bootstrap();
+    private final ObjectMapper mapper = new ObjectMapper();
+    private Channel channel;
+    private Timer timer_;
+    private final InetSocketAddress address;
 
     // This should run on a new thread separate from the UI
-    public ServerConnection(final InetSocketAddress address, Stage mainStage) {
+    public ServerConnection(final InetSocketAddress address, Stage mainStage, Timer timer) {
         this.address = address;
         this.mainStage = mainStage;
+        this.timer_ = timer;
+    }
+
+    @Override
+    public void run() {
+        bootstrap.group(new NioEventLoopGroup());
+        bootstrap.channel(NioSocketChannel.class);
+        bootstrap.option(ChannelOption.SO_KEEPALIVE, true);
+        bootstrap.handler(new ChannelInitializer<SocketChannel>() {
+            @Override
+            public void initChannel(SocketChannel socketChannel) throws Exception {
+                ChannelPipeline pipeline = socketChannel.pipeline();
+                pipeline.addLast("framer", new DelimiterBasedFrameDecoder(8192, Delimiters.lineDelimiter()));
+                pipeline.addLast("encoder", new StringEncoder());
+                pipeline.addLast("decoder", new StringDecoder());
+                pipeline.addLast(messageHandler());
+            }
+        });
+        scheduleConnect( 10 );
+    }
+
+    public void close() {
+        try {
+            channel.close().sync();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    private void doConnect() {
+        try {
+            ChannelFuture f = bootstrap.connect(address);
+            f.addListener( new ChannelFutureListener() {
+                @Override public void operationComplete(ChannelFuture future) throws Exception {
+                    if( !future.isSuccess() ) {//if is not successful, reconnect
+                        future.channel().close();
+                        bootstrap.connect(address).addListener(this);
+                    } else {//good, the connection is ok
+                        channel = future.channel();
+                        //add a listener to detect the connection lost
+                        addCloseDetectListener(channel);
+                        connectionEstablished();
+                    }
+                }
+
+                private void addCloseDetectListener(Channel channel) {
+                    //if the channel connection is lost, the ChannelFutureListener.operationComplete() will be called
+                    channel.closeFuture().addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future ){
+                            connectionLost();
+                            scheduleConnect( 5 );
+                        }
+                    });
+
+                }
+            });
+        }catch( Exception ex ) {
+            logger.error("doConnect error:" + ex);
+            scheduleConnect( 1000 );
+        }
+    }
+
+    private void scheduleConnect( long millis ) {
+        logger.info("scheduleConnect with delay:" + millis);
+        timer_.schedule( new TimerTask() {
+            @Override
+            public void run() {
+                doConnect();
+            }
+        }, millis );
+    }
+
+    private ChannelHandler messageHandler() {
+        return new ChannelInboundHandlerAdapter () {
+            @Override
+            public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
+                System.out.printf("received %s%n", msg);
+                Payload payload = Payload.fromJson(new ObjectMapper(), (String)msg);
+                handlePayload(payload);
+            }
+        };
+    }
+
+    private void connectionLost() {
+        logger.warn("");
+        killAllAndRestart();
+    }
+
+    private void connectionEstablished(){
+        logger.info("Connected to server");
+        // Create login UI
+        Platform.setImplicitExit(false);
+        Platform.runLater(() -> {
+            FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
+            Parent loginRoot = null;
+            try {
+                loginRoot = (Parent)loginLoader.load();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
+            // Make stage not resizable
+            mainStage.setResizable(false);
+            // Pass main stage and serverConnection to stage
+            loginController.setMainStage(mainStage);
+            loginController.setServerConnection(this);
+            loginController.init();
+            mainStage.setTitle("Login");
+            mainStage.setScene(new Scene(loginRoot));
+            mainStage.show();
+        });
     }
 
     /**
@@ -74,8 +185,12 @@ public class ServerConnection implements Runnable {
         write(payload);
     }
 
-    public void write(Payload payload) throws JsonProcessingException {
-        channel.writeAndFlush(payload.toJson(mapper).concat("\n"));
+    public void write(Payload payload) throws IOException {
+        if( channel != null && channel.isActive() ) {
+            channel.writeAndFlush(payload.toJson(mapper).concat("\n"));
+        } else {
+            throw new IOException( "Can't send message to inactive connection");
+        }
     }
 
     /**
@@ -107,78 +222,6 @@ public class ServerConnection implements Runnable {
     }
 
     /**
-     * Method that sends payload to server and adds listener for server response.
-     * @param payload The payload that is sent to server
-     * @param controller The controller that is called when server responds
-     * @throws IOException
-     */
-    public void writeWithResponse(Payload payload, Controller controller) throws IOException {
-        //TODO Handle IOException
-        listeners2.put(payload.getId(),controller);
-        write(payload);
-    }
-
-    @Override
-    public void run() {
-        Platform.setImplicitExit(false);
-        final EventLoopGroup group = new NioEventLoopGroup();
-
-        try {
-            Bootstrap bootstrap = new Bootstrap()
-                    .group(group)
-                    .channel(NioSocketChannel.class)
-                    .handler(new ClientInitializer(this, mapper));
-            channel = bootstrap.connect(address.getAddress().getHostAddress(), address.getPort()).sync().channel();
-        } catch (final InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-        //while (true){
-        //    try (final SocketChannel channel = SocketChannel.open(address)) {
-        //        logger.info("Connected to server");
-        //        // Open UI here
-        //
-        //        Platform.runLater(() -> {
-        //            FXMLLoader loginLoader = new FXMLLoader(getClass().getClassLoader().getResource("login.fxml"));
-        //            Parent loginRoot = null;
-        //            try {
-        //                loginRoot = (Parent)loginLoader.load();
-        //            } catch (IOException err) {
-        //                System.out.println("aa");
-        //                throw new UncheckedIOException(err);
-        //            }
-        //            ControllerLogin loginController = (ControllerLogin) loginLoader.getController();
-        //            // Make stage not resizable
-        //            mainStage.setResizable(false);
-        //            // Pass main stage and serverConnection to stage
-        //            loginController.setMainStage(mainStage);
-        //            loginController.setServerConnection(this);
-        //            loginController.init();
-        //            mainStage.setTitle("Login");
-        //            mainStage.setScene(new Scene(loginRoot));
-        //            mainStage.show();
-        //        });
-        //        readMessages = true;
-        //
-        //        this.channel = channel;
-        //        while (readMessages) {
-        //            if(channel.isConnected()){
-        //                final Payload payload = read();
-        //                if(responseWaitingControllers.containsKey(payload.getResponseTo())){
-        //                    responseWaitingControllers.get(payload.getResponseTo()).handleResponse(payload);
-        //                    responseWaitingControllers.remove(payload.getResponseTo());
-        //                }else{
-        //                    //TODO implement passive listener
-        //                }
-        //            }
-        //        }
-        //    } catch (final IOException err) {
-        //        logger.error("ServerConnection.run: " + err);
-        //        killAllAndRestart();
-        //    }
-        //}
-    }
-
-    /**
      * Method kills all scenes scenes, controllers and resets connection to server.
      * Opens login UI and starts again
      */
@@ -194,21 +237,32 @@ public class ServerConnection implements Runnable {
         currentlyOpenStages.clear();
         passiveListeners = new ArrayList<>();
         responseWaitingControllers = new HashMap<>();
-        // just in case signal runnable thread that it needs to close and restart
-        readMessages = false;
     }
 
-    public void handlePayload(Payload payload) {
+    public void handlePayload(Payload payload) throws IOException {
         if (responseWaitingControllers.containsKey(payload.getResponseTo())) {
             try {
-                responseWaitingControllers.get(payload.getResponseTo()).handleResponse(payload);
-                responseWaitingControllers.remove(payload.getResponseTo());
+                Controller controller = responseWaitingControllers.get(payload.getResponseTo());
+                if(controller == null){
+                    logger.error("responseWaitingControllers did not find controller :" + payload.toString());
+                }else{
+                    controller.handleResponse(payload);
+                    responseWaitingControllers.remove(payload.getResponseTo());
+                }
             } catch (IOException e) {
-               throw new UncheckedIOException(e);
+                throw new UncheckedIOException(e);
             }
-
         } else {
-            //TODO implement passive listener
+            boolean controllerFound = false;
+            for (Controller controller: passiveListeners) {
+                if(controller.getListenTypes().contains(payload.getType())){
+                    controller.handleResponse(payload);
+                    controllerFound = true;
+                }
+            }
+            if(!controllerFound){
+                logger.error("Passivle listener not found for payload: " + payload.toString());
+            }
         }
     }
 }
