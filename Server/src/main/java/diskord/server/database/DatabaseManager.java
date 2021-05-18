@@ -1,5 +1,8 @@
 package diskord.server.database;
 
+import diskord.server.database.room.Room;
+import diskord.server.database.transactions.RoomTransactions;
+
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.EntityTransaction;
@@ -12,6 +15,13 @@ public class DatabaseManager {
   public DatabaseManager() {
     createEntityManagerFactory();
     System.out.println("db manager has been initialized");
+
+    final Room room = new Room()
+      .setName("Test room 2")
+      .setDescription("Test description 2")
+      .setJoinId("test1");
+    save(room);
+    System.out.println(room);
   }
 
   public void close() {
