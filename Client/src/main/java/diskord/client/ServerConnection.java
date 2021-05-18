@@ -22,13 +22,12 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 import lombok.Getter;
+import lombok.Setter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
-
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,6 +48,7 @@ public class ServerConnection implements Runnable {
     // Client UI handling
     private List<Stage> currentlyOpenStages = new ArrayList<>();
     private Stage mainStage;
+    @Setter
     private ControllerLogin controllerLogin;
 
     // Netty
@@ -208,7 +208,6 @@ public class ServerConnection implements Runnable {
      * @throws IOException
      */
     public void writeWithResponse(Payload payload, Controller controller){
-        //TODO Handle IOException
         logger.info("Payload sent:" + payload.toString());
         responseWaitingControllers.put(payload.getId(), controller);
         write(payload);

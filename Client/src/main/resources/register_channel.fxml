@@ -8,7 +8,6 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
 
-
 <HBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="317.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerRegisterChannel">
    <children>
       <VBox prefHeight="172.0" prefWidth="311.0">
@@ -27,7 +26,7 @@
             <AnchorPane prefHeight="319.0" prefWidth="289.0">
                <children>
                   <Label layoutX="105.0" layoutY="102.0" prefHeight="17.0" prefWidth="83.0" text="Channel name" textAlignment="CENTER" />
-                  <TextField fx:id="fxTextFieldChannelName" layoutX="72.0" layoutY="132.0" />
+                  <TextField fx:id="fxTextFieldChannelName" layoutX="72.0" layoutY="132.0" onKeyPressed="#fxEventTextFieldOnKeyPressed" />
                   <Button fx:id="fxButtonCreateChannel" layoutX="119.0" layoutY="191.0" mnemonicParsing="false" onAction="#fxEventButtonCreateChannel" text="Create" />
                   <Label fx:id="fxLabelChannelResponse" layoutX="20.0" layoutY="165.0" prefHeight="17.0" prefWidth="250.0" textAlignment="CENTER" />
                </children>
