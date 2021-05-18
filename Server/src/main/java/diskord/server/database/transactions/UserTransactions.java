@@ -14,4 +14,10 @@ public class UserTransactions {
         .getSingleResult()
     );
   }
+
+  public static boolean doesUserExist(final DatabaseManager dbManager, final String username) {
+    return dbManager.runTransaction(em ->
+      (Long) em.createQuery("SELECT COUNT(*) FROM User u WHERE u.username = :username").setParameter("username", username).getSingleResult() > 0
+    );
+  }
 }
