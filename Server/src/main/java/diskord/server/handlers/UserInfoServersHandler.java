@@ -19,7 +19,6 @@ import org.modelmapper.ModelMapper;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.INFO_USER_SERVERS_ERROR;
@@ -49,14 +48,22 @@ public class UserInfoServersHandler extends Handler {
     response.setResponseType(TO_SELF);
 
     try {
-      DecodedJWT decoded = Auth.decode(request.getJwt());
+      final String jwt = request.getJwt();
+      if (jwt == null) throw new IllegalStateException();
+
+      DecodedJWT decoded = Auth.decode(jwt);
       final User user = UserTransactions.getUserByUsername(dbManager, decoded.getSubject());
 
       List<String> joinedServers = new ArrayList<>();
       final List<JoinedServer> joinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
       for (final JoinedServer joinedRoom : joinedRooms) {
         final Room room = joinedRoom.getRoom();
-        joinedServers.add(ConvertServer.convert(modelMapper, room).toJson(objectMapper));
+        try {
+          final String serverStr = ConvertServer.convert(modelMapper, room).toJson(objectMapper);
+          joinedServers.add(serverStr);
+        } catch (JsonProcessingException e) {
+          e.printStackTrace();
+        }
       }
 
       List<String> privilegedServers = new ArrayList<>();
@@ -69,12 +76,10 @@ public class UserInfoServersHandler extends Handler {
       response
         .putBody("joined", joinedServers)
         .putBody("privileged", privilegedServers);
-    } catch (JWTVerificationException err) {
+    } catch (JWTVerificationException | IllegalStateException err) {
       return response
         .setType(INFO_USER_SERVERS_ERROR)
         .putBody(BODY_MESSAGE, "Decoding jwt token that was received from client failed.");
-    } catch (JsonProcessingException e) {
-      e.printStackTrace();
     }
 
     return response.setType(INFO_USER_SERVERS_OK);
