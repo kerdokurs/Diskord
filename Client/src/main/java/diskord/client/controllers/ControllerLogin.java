@@ -80,11 +80,7 @@ public class ControllerLogin implements Controller {
         loginPayload.setType(PayloadType.LOGIN);
         loginPayload.putBody("username",fxTextFieldUsername.getText());
         loginPayload.putBody("password",fxTextFieldPassword.getText());
-
         serverConnection.writeWithResponse(loginPayload,this);
-
-        //TODO replace test data
-        //handleResponse(TestData.getLogin());
     }
 
     /**
