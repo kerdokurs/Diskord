@@ -6,4 +6,5 @@ module diskord.payload {
   requires com.fasterxml.jackson.databind;
 
   opens diskord.payload to com.fasterxml.jackson.databind;
+  exports diskord.payload.dto;
 }
