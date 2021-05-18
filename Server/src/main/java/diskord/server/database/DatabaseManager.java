@@ -16,12 +16,12 @@ public class DatabaseManager {
     createEntityManagerFactory();
     System.out.println("db manager has been initialized");
 
-    final Room room = new Room()
-      .setName("Test room 2")
-      .setDescription("Test description 2")
-      .setJoinId("test1");
-    save(room);
-    System.out.println(room);
+    // final Room room = new Room()
+    //   .setName("Test room 2")
+    //   .setDescription("Test description 2")
+    //   .setJoinId("test1");
+    // save(room);
+    // System.out.println(room);
   }
 
   public void close() {
