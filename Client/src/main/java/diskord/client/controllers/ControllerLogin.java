@@ -13,6 +13,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
@@ -71,6 +73,31 @@ public class ControllerLogin implements Controller {
     }
 
     /**
+     * Method disables login UI elements and shows disable message in UI
+     */
+    public void disableUserInteractions(String disableMessage){
+        fxTextFieldUsername.setDisable(true);
+        fxTextFieldPassword.setDisable(true);
+        fxButtonRegister.setDisable(true);
+        fxButtonSignIn.setDisable(true);
+        Platform.runLater(() -> {
+            fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelLoginErrorMessage.setText(disableMessage);
+        });
+    }
+
+    public void enableUserIneractions(String enableMessage){
+        fxTextFieldUsername.setDisable(false);
+        fxTextFieldPassword.setDisable(false);
+        fxButtonRegister.setDisable(false);
+        fxButtonSignIn.setDisable(false);
+        Platform.runLater(() -> {
+            fxLabelLoginErrorMessage.setTextFill(Color.color(0, 1, 0));
+            fxLabelLoginErrorMessage.setText(enableMessage);
+        });
+    }
+
+    /**
      * JavaFX event in Login scene. Method is called when Login button is clicked.
      * Method will attempt to login user. If not possible, it will notify user why login failed.
      */
@@ -125,6 +152,13 @@ public class ControllerLogin implements Controller {
     public void handleResponse(Payload response) throws IOException {
         PayloadBody responseBody = response.getBody();
         switch (response.getType()){
+            case BONK:
+                // Check if UI is disabled.
+                // If it is, show recovery message
+                if(fxButtonSignIn.isDisable()){
+                    enableUserIneractions("Connection restored!");
+                }
+                break;
             case LOGIN_OK:
                 // Save current settings to properties
                 loginProperties.setProperty("saveUsername","True");
@@ -171,13 +205,18 @@ public class ControllerLogin implements Controller {
                 });
                 break;
             case LOGIN_ERROR:
-                // All FX interaction must be done in this
-                Platform.runLater(() -> fxLabelLoginErrorMessage.setText((String)responseBody.get("message")));
+                Platform.runLater(() -> {
+                    fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+                    fxLabelLoginErrorMessage.setText((String)responseBody.get("message"));
+                });
 
                 break;
             default:
                 // Servers response was not expected
-                Platform.runLater(() -> fxLabelLoginErrorMessage.setText("Server sent unrecognisable payload type: " + response.getType()));
+                Platform.runLater(() -> {
+                    fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+                    fxLabelLoginErrorMessage.setText("Server sent unrecognisable payload type: " + response.getType());
+                });
                 break;
         }
     }

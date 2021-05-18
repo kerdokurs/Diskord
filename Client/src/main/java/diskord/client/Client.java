@@ -18,15 +18,13 @@ public class Client extends Application {
   }
 
   @Override
-  public void start(Stage stage) throws IOException {
+  public void start(Stage stage){
 
     // Establish connection to server and show login screen
-    Timer timer = new Timer();
-    ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192), stage, timer);
+    ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("4.tcp.eu.ngrok.io",19261), stage);
+    //ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192), stage);
     Thread serverThread = new Thread(serverConnection);
     serverThread.start();
-
-
   }
 }
 

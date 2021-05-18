@@ -97,10 +97,8 @@ public class ControllerJoinServer implements Controller {
         Payload request = new Payload();
         request.setJwt(parentController.currentUser.getUserToken());
         request.setType(PayloadType.JOIN_SERVER);
-        request.putBody("joinID", fxTextFieldServerID.getText());
+        request.putBody("join_id", fxTextFieldServerID.getText());
 
-        //TODO send request to server
-        //TODO replace test data
-        handleResponse(TestData.getJoinServer());
+        serverConnection.writeWithResponse(request,this);
     }
 }
