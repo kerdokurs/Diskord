@@ -7,6 +7,7 @@ import diskord.server.database.user.PrivilegedServer;
 import diskord.server.database.user.User;
 
 import java.util.List;
+import java.util.UUID;
 
 public class UserTransactions {
   private UserTransactions() {
@@ -20,18 +21,18 @@ public class UserTransactions {
     );
   }
 
-  public static List<JoinedServer> getUserJoinedRooms(final DatabaseManager dbManager, final User user) {
+  public static List<JoinedServer> getUserJoinedRooms(final DatabaseManager dbManager, final UUID userId) {
     return dbManager.runTransaction(em ->
-      em.createQuery("FROM JoinedServer jr WHERE jr.user = :user", JoinedServer.class)
-        .setParameter("user", user)
+      em.createQuery("FROM JoinedServer jr WHERE jr.userId = :userId", JoinedServer.class)
+        .setParameter("userId", userId)
         .getResultList()
     );
   }
 
-  public static List<PrivilegedServer> getUserPrivilegedRooms(final DatabaseManager dbManager, final User user) {
+  public static List<PrivilegedServer> getUserPrivilegedRooms(final DatabaseManager dbManager, final UUID userId) {
     return dbManager.runTransaction(em ->
-      em.createQuery("FROM PrivilegedServer jr WHERE jr.user = :user", PrivilegedServer.class)
-        .setParameter("user", user)
+      em.createQuery("FROM PrivilegedServer jr WHERE jr.userId = :userId", PrivilegedServer.class)
+        .setParameter("userId", userId)
         .getResultList()
     );
   }

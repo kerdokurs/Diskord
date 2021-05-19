@@ -8,6 +8,7 @@ import diskord.payload.Payload;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.room.Room;
+import diskord.server.database.transactions.RoomTransactions;
 import diskord.server.database.transactions.UserTransactions;
 import diskord.server.database.user.JoinedServer;
 import diskord.server.database.user.PrivilegedServer;
@@ -19,6 +20,7 @@ import org.modelmapper.ModelMapper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.INFO_USER_SERVERS_ERROR;
@@ -55,9 +57,9 @@ public class UserInfoServersHandler extends Handler {
       final User user = UserTransactions.getUserByUsername(dbManager, decoded.getSubject());
 
       List<String> joinedServers = new ArrayList<>();
-      final List<JoinedServer> joinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
+      final List<JoinedServer> joinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user.getId());
       for (final JoinedServer joinedRoom : joinedRooms) {
-        final Room room = joinedRoom.getRoom();
+        final Room room = RoomTransactions.getRoomByUUID(dbManager, joinedRoom.getRoomId());
         try {
           // Mapping ServerDTO to string for client to parse it itself
           final String serverStr = ConvertServer.convert(modelMapper, room).toJson(objectMapper);
@@ -68,16 +70,17 @@ public class UserInfoServersHandler extends Handler {
       }
 
       List<String> privilegedServers = new ArrayList<>();
-      final List<PrivilegedServer> privilegedRooms = UserTransactions.getUserPrivilegedRooms(dbManager, user);
+      final List<PrivilegedServer> privilegedRooms = UserTransactions.getUserPrivilegedRooms(dbManager, user.getId());
       for (final PrivilegedServer privilegedRoom : privilegedRooms) {
-        final Room room = privilegedRoom.getRoom();
-        privilegedServers.add(room.getId().toString());
+        final UUID roomId = privilegedRoom.getRoomId();
+        privilegedServers.add(roomId.toString());
       }
 
       response
         .putBody("joined", joinedServers)
         .putBody("privileged", privilegedServers);
     } catch (JWTVerificationException | IllegalStateException err) {
+      err.printStackTrace();
       return response
         .setType(INFO_USER_SERVERS_ERROR)
         .putBody(BODY_MESSAGE, "Decoding jwt token that was received from client failed.");

@@ -129,7 +129,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
     // TODO: What to do with the caught exception?
     logger.error("Exception has been caught", cause);
-    ctx.close();
+//    ctx.close(); // TODO: Decide what to do when exception is caught. Maybe notify user of server fatal error (500)?
   }
 
   /**
