@@ -17,6 +17,7 @@ import org.modelmapper.ModelMapper;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.INFO_CHANNELS_ERROR;
@@ -75,13 +76,14 @@ public class InfoChannelsHandler extends Handler {
       // TODO: Cleanup
       response
         .putBody("channels", channels.stream().map(c -> {
-          try {
-            return ConvertChannel.convert(modelMapper, c).toJson(objectMapper);
-          } catch (JsonProcessingException e) {
-            e.printStackTrace();
-          }
-          return "";
-        }));
+            try {
+              return ConvertChannel.convert(modelMapper, c).toJson(objectMapper);
+            } catch (JsonProcessingException e) {
+              e.printStackTrace();
+            }
+            return "";
+          }).collect(Collectors.toList())
+        );
     } catch (JWTVerificationException err) {
       return response
         .setType(INFO_CHANNELS_ERROR)
