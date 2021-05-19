@@ -147,5 +147,5 @@ public enum PayloadType {
   // key: "message" value: (String) error message
   REGISTER_CHANNEL_ERROR,
 
-  SERVER_FVKD_ERROR,
+  SERVER_FVKD_UP,
 }

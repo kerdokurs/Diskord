@@ -10,7 +10,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
 
-import java.util.List;
+import java.util.*;
 
 public class Server {
   private final int port;
@@ -20,6 +20,9 @@ public class Server {
 
   @Getter
   private List<Room> rooms; // created rooms (servers) with their channels
+
+  @Getter
+  private final Map<UUID, Queue<ConnectedClient>> channelJoinedChannels = new HashMap<>();
 
   public Server(int port) {
     this.port = port;

@@ -1,7 +1,7 @@
 package diskord.server.database;
 
+import diskord.server.database.channel.Channel;
 import diskord.server.database.room.Room;
-import diskord.server.database.transactions.RoomTransactions;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -16,12 +16,18 @@ public class DatabaseManager {
     createEntityManagerFactory();
     System.out.println("db manager has been initialized");
 
-    // final Room room = new Room()
-    //   .setName("Test room 2")
-    //   .setDescription("Test description 2")
-    //   .setJoinId("test1");
-    // save(room);
-    // System.out.println(room);
+    // TODO: Use this to generate the initial rooms and channels
+//    Room room = new Room()
+//      .setName("Test room")
+//      .setDescription("Test room description")
+//      .setJoinId("test");
+//    save(room);
+//    for (int i = 0; i < 3; i++) {
+//      Channel channel = new Channel()
+//        .setRoom(room)
+//        .setName("Room " + i);
+//      save(channel);
+//    }
   }
 
   public void close() {

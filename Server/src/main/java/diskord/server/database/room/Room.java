@@ -36,9 +36,23 @@ public class Room {
 
   @Getter
   @Setter
+  @Column(
+    columnDefinition = "TEXT"
+  )
   private String icon;
 
   @Getter
   @Setter
   private String joinId;
+
+  public Room() {
+  }
+
+  public Room(final String name, final String description, final String icon) {
+    this.name = name;
+    this.description = description;
+    this.icon = icon;
+
+    this.joinId = UUID.randomUUID().toString().substring(0, 6);
+  }
 }

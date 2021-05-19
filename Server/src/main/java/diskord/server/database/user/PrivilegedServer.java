@@ -26,16 +26,14 @@ public class PrivilegedServer {
   private UUID id;
 
   @Getter
-  @OneToOne(fetch = FetchType.EAGER)
-  private User user;
+  private UUID userId;
 
   @Getter
-  @OneToOne(fetch = FetchType.EAGER)
-  private Room room;
+  private UUID roomId;
 
   public PrivilegedServer(final User user, final Room room) {
-    this.user = user;
-    this.room = room;
+    userId = user.getId();
+    roomId = room.getId();
   }
 
   public PrivilegedServer() {

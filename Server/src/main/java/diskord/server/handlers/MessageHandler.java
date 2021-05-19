@@ -12,11 +12,14 @@ import io.netty.channel.Channel;
 
 import java.util.UUID;
 
-import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
+import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadType.MSG;
+import static diskord.payload.PayloadType.MSG_ERROR;
+import static diskord.payload.ResponseType.TO_CHANNEL_EXCEPT_SELF;
 import static diskord.payload.ResponseType.TO_SELF;
 
 public class MessageHandler extends Handler {
-  protected MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
+  public MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
     super(dbManager, serverHandler);
   }
 
@@ -26,9 +29,15 @@ public class MessageHandler extends Handler {
     response.setResponseTo(request.getId());
 
     final String token = request.getJwt();
-    final String message = (String) request.getBody().get("message"); // TODO: Validate
+    final String message = (String) request.getBody().get(BODY_MESSAGE);
+    final Object file = request.getBody().get("chat_file");
 
-    // TODO: Get and validate optionally attached file
+//    if (file != null && (message == null || message.isEmpty() || message.length() >= 500)) {
+//      return response
+//        .setResponseType(TO_SELF)
+//        .setType(MSG_ERROR)
+//        .putBody(BODY_MESSAGE, "Invalid message length. Message must contain 0-500 characters.");
+//    }
 
     try {
       final DecodedJWT decoded = Auth.decode(token);
@@ -38,16 +47,19 @@ public class MessageHandler extends Handler {
 
       final UUID messageId = UUID.randomUUID();
 
+
       return response
-        .setResponseType(TO_ALL_EXCEPT_SELF)
+        .setType(MSG)
+        .setResponseType(TO_CHANNEL_EXCEPT_SELF)
         .putBody("id", messageId.toString())
         .putBody("message", message)
         .putBody("user_id", user.getId().toString())
-        .putBody("username", username);
+        .putBody("username", username)
+        .putBody("chat_file", file);
     } catch (final JWTVerificationException e) {
       return response
         .setResponseType(TO_SELF)
-        .putBody("message", "Error with provided login token. Try logging out and logging in.");
+        .putBody("message", "Error with provided login token. Try logging out and back in.");
     }
   }
 }

@@ -6,6 +6,7 @@ import org.modelmapper.ModelMapper;
 
 public class ConvertServer {
   public static ServerDTO convert(final ModelMapper mapper, final Room room) {
-    return mapper.map(room, ServerDTO.class).setJoinID(room.getId().toString().substring(0, 7));
+    return mapper.map(room, ServerDTO.class)
+      .setBase64Icon(room.getIcon());
   }
 }
