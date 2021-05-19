@@ -123,65 +123,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
       response = unhandledRequest(request);
     }
 
-    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK)) {
-      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
-      final String jwt = request.getJwt();
+    // Handling additional logic when a user joins OK
+    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK))
+      handleUsersOnJoin(incoming, request, response);
 
-      if (jwt != null) {
-        final DecodedJWT decoded = Auth.decode(jwt);
-        final String username = decoded.getSubject();
-        final User user = UserTransactions.getUserByUsername(dbManager, username);
+    // Handling additional logic when a user leaves OK
+    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK))
+      handleUsersOnLeave(incoming, request);
 
-        final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
-
-        // TODO: Fix later
-        final List<String> users = connectedClients.stream()
-          .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
-          .filter(Objects::nonNull)
-          .map(userDto -> {
-            try {
-              return userDto.toJson(objectMapper);
-            } catch (JsonProcessingException e) {
-              e.printStackTrace();
-              return "";
-            }
-          })
-          .collect(Collectors.toList());
-
-        response.putBody("users", users);
-
-        final Payload userJoinedPayload = new Payload()
-          .setType(INFO_USER_JOINED_CHANNEL)
-          .setResponseType(TO_ALL_EXCEPT_SELF)
-          .putBody("user", ConvertUser.convertFromUser(modelMapper, user));
-
-        for (final ConnectedClient connectedClient : connectedClients) {
-          send(connectedClient.getChannel(), userJoinedPayload);
-        }
-
-        if (user != null) {
-          // TODO: #computeIfAbsent
-          if (!server.getChannelJoinedChannels().containsKey(channelId))
-            server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
-
-          connectedClients.add(new ConnectedClient(user.getId(), incoming));
-        }
-
-        request.setJwt(null);
-      }
-    }
-
-    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK)) {
-      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
-
-      // TODO: #computeIfAbsent
-      if (!server.getChannelJoinedChannels().containsKey(channelId))
-        server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
-
-      final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
-      joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
-
-      request.setJwt(null);
+    if (request.getType().equals(MSG) && response.getType().equals(MSG)) {
+      final Payload msgOkPayload = new Payload()
+        .setType(MSG_OK)
+        .setResponseType(TO_SELF)
+        .setResponseTo(request.getId());
+      send(incoming, msgOkPayload);
     }
 
     System.out.println(server.getChannelJoinedChannels());
@@ -191,6 +146,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         sendAll(response);
         break;
       case TO_ALL_EXCEPT_SELF:
+        final String channelIdStr = (String) request.getBody().get("channel_id");
+        final UUID channelId = UUID.fromString(channelIdStr);
+        sendAll(response, channelId, incoming);
+        break;
+      case TO_CHANNEL_EXCEPT_SELF:
         sendAll(response, incoming);
         break;
       case TO_ONE:
@@ -202,6 +162,80 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         send(incoming, response);
         break;
     }
+  }
+
+  /**
+   * Method for handling additional leave logic when a client leaves from a server's channel
+   *
+   * @param incoming client
+   * @param request  request payload
+   */
+  private void handleUsersOnLeave(final Channel incoming, final Payload request) {
+    final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+
+    final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels()
+      .computeIfAbsent(channelId, x -> new ArrayBlockingQueue<>(100));
+
+    // Removing the user from the channel when its there
+    joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
+  }
+
+  /**
+   * Method for handling additional join logic when a client connects to a channel
+   *
+   * @param incoming client
+   * @param request  request payload
+   * @param response current response payload
+   * @throws JsonProcessingException exception when JSON processing fails
+   */
+  private void handleUsersOnJoin(final Channel incoming, final Payload request, final Payload response) throws JsonProcessingException {
+    final String channelIdStr = (String) request.getBody().get("channel_id");
+    final String jwt = request.getJwt();
+
+    if (jwt == null || channelIdStr == null) return;
+
+    final UUID channelId = UUID.fromString(channelIdStr);
+    final DecodedJWT decoded = Auth.decode(jwt);
+
+    final String username = decoded.getSubject();
+    final User user = UserTransactions.getUserByUsername(dbManager, username);
+
+    if (user == null) return;
+
+    // Currently connected clients
+    final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels()
+      .computeIfAbsent(channelId, x -> new ArrayBlockingQueue<>(100));
+
+    // Adding the new client to the connected clients
+    connectedClients.add(new ConnectedClient(user.getId(), incoming));
+
+    // TODO: Fix later
+    final List<String> users = connectedClients.stream()
+      .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
+      .filter(Objects::nonNull)
+      .map(userDto -> {
+        try {
+          return userDto.toJson(objectMapper);
+        } catch (final JsonProcessingException e) {
+          return "";
+        }
+      })
+      .collect(Collectors.toList());
+
+    response.putBody("users", users);
+
+    // Notifying every connected client that another one has connected
+    final Payload userJoinedPayload = new Payload()
+      .setType(INFO_USER_JOINED_CHANNEL)
+      .setResponseType(TO_ALL_EXCEPT_SELF)
+      .putBody("user", ConvertUser.convertFromUser(modelMapper, user).toJson(objectMapper));
+
+    for (final ConnectedClient connectedClient : connectedClients)
+      if (!connectedClient.getChannel().equals(incoming))
+        send(connectedClient.getChannel(), userJoinedPayload);
+
+    // Clearing the jwt from the response (was only used for tracking the joined user)
+    request.setJwt(null);
   }
 
   @Override
@@ -250,6 +284,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     for (final Channel channel : channels)
       if (!channel.equals(ignore))
         send(channel, payload);
+  }
+
+  public void sendAll(final Payload payload, final UUID channelId, final Channel ignore) {
+    final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
+    if (connectedClients == null) return;
+
+    for (final ConnectedClient connectedClient : connectedClients) {
+      final Channel channel = connectedClient.getChannel();
+
+      if (channel.equals(ignore)) continue;
+
+      send(channel, payload);
+    }
   }
 
   public void sendToServer(final Payload payload, final UUID serverId) {
