@@ -9,6 +9,7 @@ import diskord.payload.PayloadType;
 import diskord.payload.dto.ChannelDTO;
 import diskord.payload.dto.ServerDTO;
 import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.EventHandler;
@@ -77,7 +78,6 @@ public class ControllerMain implements Controller {
     ObservableList<ListViewServerRow> listViewServerData = FXCollections.observableArrayList();
     @FXML
     ObservableList<ListViewChatRow> listViewChatData = FXCollections.observableArrayList();
-
     @FXML
     ObservableList<ListViewChannelRow> listViewChannelData = FXCollections.observableArrayList();
     @FXML
@@ -93,8 +93,7 @@ public class ControllerMain implements Controller {
     UUID currentChatUuid;
     ServerConnection serverConnection;
     ObjectMapper objectMapper = new ObjectMapper();
-    // For testing purpose. This will replace all server interaction with test data
-
+    // For testing purpose
     private final Logger logger = LogManager.getLogger(getClass().getName());
 
     /**
@@ -138,11 +137,14 @@ public class ControllerMain implements Controller {
         MenuItem serverMenuItem1 = new MenuItem("Join");
         MenuItem serverMenuItem2 = new MenuItem("Create");
         MenuItem serverMenuItem3 = new MenuItem("Delete");
-        //TODO Fix this shit contextmenu disable property madness
-        //serverMenuItem3.disableProperty().bind(
-        //        Bindings.createBooleanBinding( () ->
-        //                fxListViewServers.getSelectionModel().getSelectedItem() == null ||
-        //                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid)));
+        // Create  bind to disable property so if user is not authenticated to use delete command, it will be disabled
+        serverMenuItem3.disableProperty().bind(
+                Bindings.createBooleanBinding( () ->
+                        fxListViewServers.getSelectionModel().getSelectedItem() == null ||
+                                currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid),
+                        fxListViewServers.getItems(),
+                        currentUser.getPrivilegedServers()));
+
         // Set event handlers
         serverMenuItem1.setOnAction(event -> fxEventListViewServersContextMenuJoinOnAction());
         serverMenuItem2.setOnAction(event -> fxEventListViewServersContextMenuCreateOnAction());
@@ -154,14 +156,27 @@ public class ControllerMain implements Controller {
         fxListViewServers.setContextMenu(serverContextMenu);
         // Create contextmenu for channels
         ContextMenu channelContextMenu = new ContextMenu();
-        MenuItem channelMenuItem2 = new MenuItem("Create");
-        MenuItem channelMenuItem3 = new MenuItem("Delete");
+        MenuItem channelMenuItem1 = new MenuItem("Create");
+        MenuItem channelMenuItem2 = new MenuItem("Delete");
+        channelMenuItem1.disableProperty().bind(
+                Bindings.createBooleanBinding( () -> fxListViewServers.getSelectionModel().getSelectedItem() == null,fxListViewServers.getItems())
+        );
+        // Create  bind to disable property so if user is not authenticated to use delete command, it will be disabled
+        channelMenuItem2.disableProperty().bind(
+                Bindings.createBooleanBinding( () ->
+                                fxListViewServers.getSelectionModel().getSelectedItem() == null ||
+                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid),
+                        fxListViewServers.getItems(),
+                        currentUser.getPrivilegedServers()));
+        // Disable channel contextmenu. If server is selected, then enable
+        channelMenuItem1.setDisable(true);
+        channelMenuItem2.setDisable(true);
         // set event handlers
-        channelMenuItem2.setOnAction(event -> fxEventListViewChannelsContextMenuCreateOnAction());
-        channelMenuItem3.setOnAction(event -> fxEventListViewChannelsContextMenuDeleteOnAction());
+        channelMenuItem1.setOnAction(event -> fxEventListViewChannelsContextMenuCreateOnAction());
+        channelMenuItem2.setOnAction(event -> fxEventListViewChannelsContextMenuDeleteOnAction());
         // Add context menu to listview
+        channelContextMenu.getItems().add(channelMenuItem1);
         channelContextMenu.getItems().add(channelMenuItem2);
-        channelContextMenu.getItems().add(channelMenuItem3);
         fxListViewChannel.setContextMenu(channelContextMenu);
         // Disable channel and user listview, Chat, Send chat button, chat text area
         fxListViewChannel.setDisable(true);
@@ -185,20 +200,51 @@ public class ControllerMain implements Controller {
     public void handleResponse(Payload response) throws JsonProcessingException {
         PayloadBody responseBody = response.getBody();
         switch (response.getType()) {
-            case INFO_USER_SERVERS_OK:
-                // Clear current items in listview
+            case INFO_USER_JOINED_CHANNEL:
+                User joinedUser = (User)responseBody.get("user");
                 Platform.runLater(() -> {
+                    handleChatMessage(
+                            joinedUser,
+                            "I joined the channel!",
+                            null
+                            );
+                    listViewUsersData.add(new ListViewUsersRow(
+                            joinedUser.getUsername(),
+                            joinedUser.getUserImage()
+                    ));
+                });
+                break;
+            case INFO_USER_LEFT_CHANNEL:
+                User leftUser = currentChatUsers.get(UUID.fromString((String)responseBody.get("user_id")));
+                Platform.runLater(() -> {
+                    handleChatMessage(
+                            leftUser,
+                            "I left the channel!",
+                            null
+                    );
+                    // Find the user as listviewUserRow and remove it from observable listviewUsersData list.
+                    listViewUsersData.remove(listViewUsersData.stream().filter(x -> x.getName().equals(leftUser.getUsername())).findAny());
+                });
+                break;
+
+            case INFO_USER_SERVERS_OK:
+
+                Platform.runLater(() -> {
+                    // Disable all elements that user should not have access
                     fxListViewChannel.setDisable(true);
                     fxListViewUsers.setDisable(true);
                     fxListViewChat.setDisable(true);
                     fxButtonChatAddFile.setDisable(true);
                     fxButtonChatSend.setDisable(true);
                     fxTextAreaChatBox.setDisable(true);
+                    // Clear current items in listview
                     fxListViewServers.getItems().clear();
                 });
                 Set<String> joined = new HashSet<>(((List<String>) responseBody.get("joined")));
                 Set<UUID> privileged = new HashSet<>(((List<UUID>) responseBody.get("privileged")));
-                currentUser.setPrivilegedServers(new ArrayList<>(privileged));
+                ObservableList<UUID> observableList = FXCollections.observableArrayList();
+                observableList.addAll(privileged);
+                currentUser.setPrivilegedServers(observableList);
                 for (final String content : joined) {
                     final ServerDTO serverDto = ServerDTO.fromJson(objectMapper, content);
                     final Server server = new Server(
@@ -279,7 +325,7 @@ public class ControllerMain implements Controller {
                 DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
                 LocalDateTime now = LocalDateTime.now();
                 User user;
-                //TODO Get currently joined users from server
+
                 if (currentChatUsers.containsKey((UUID) responseBody.get("userUuid"))) {
                     user = currentChatUsers.get((UUID) responseBody.get("userUuid"));
                 } else {
@@ -288,23 +334,9 @@ public class ControllerMain implements Controller {
                 System.out.println();
                 if (responseBody.containsKey("chatFile")) {
                     ChatFile chatFile = (ChatFile) responseBody.get("chatFile");
-                    Platform.runLater(() ->
-                            listViewChatData.add(
-                                    new ListViewChatRow(
-                                            user,
-                                            (String) responseBody.get("message"),
-                                            dtf.format(now),
-                                            chatFile
-                                    )));
+                    Platform.runLater(() -> handleChatMessage(user,(String) responseBody.get("message"),chatFile));
                 } else {
-                    Platform.runLater(() ->
-                            listViewChatData.add(
-                                    new ListViewChatRow(
-                                            user,
-                                            (String) responseBody.get("message"),
-                                            dtf.format(now),
-                                            null
-                                    )));
+                    Platform.runLater(() -> handleChatMessage(user,(String) responseBody.get("message"),null));
                 }
                 break;
             case MSG_OK:
@@ -318,7 +350,7 @@ public class ControllerMain implements Controller {
                 });
                 break;
             case LEAVE_CHANNEL_OK:
-                logger.info(response);
+                logger.info("Left the channel!");
                 break;
         }
     }
@@ -351,7 +383,7 @@ public class ControllerMain implements Controller {
      */
     @Override
     public void setParentController(Controller controller) {
-        // Due to login being the first controller, theres no need to set parent controller
+        // Due to this being the first controller, theres no need to set parent controller
     }
 
     /**
@@ -384,11 +416,8 @@ public class ControllerMain implements Controller {
     @Override
     public Set<PayloadType> getListenTypes() {
         return Stream.of(
-                PayloadType.INFO_USER_SERVERS,
-                PayloadType.INFO_CHANNELS,
-                PayloadType.JOIN_CHANNEL_OK,
-                PayloadType.JOIN_CHANNEL_ERROR,
-                PayloadType.MSG)
+                PayloadType.MSG
+        )
                 .collect(Collectors.toSet());
     }
 
@@ -397,16 +426,16 @@ public class ControllerMain implements Controller {
      *
      * @param user      user object from where the message came
      * @param message   The message that is displayed
-     * @param timeStamp When message was sent
      * @param file      ChatFileObject
      */
-    public void handleChatMessage(User user, String message, String timeStamp, ChatFile file) {
-
+    public void handleChatMessage(User user, String message, ChatFile file) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
         listViewChatData.add(
                 new ListViewChatRow(
                         user,
                         message,
-                        timeStamp,
+                        dtf.format(now),
                         file));
     }
 
@@ -438,24 +467,17 @@ public class ControllerMain implements Controller {
                 break;
             }
         }
-
-
         // Craft payload to server
         Payload request = new Payload();
         request.setJwt(currentUser.getUserToken());
         request.setType(PayloadType.MSG);
-
-
         // Clear currently written text
         fxTextAreaChatBox.setText("");
         fxLabelChatStatus.setText("");
         // Add written message to listviewChat
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        LocalDateTime currentDate = LocalDateTime.now();
-
         if (attachedFile == null) { // Only message. Datatype = 0
             request.putBody("message", message);
-            handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), null);
+            handleChatMessage(currentUser, message, null);
             return;
         }
         try {
@@ -471,7 +493,7 @@ public class ControllerMain implements Controller {
                         ChatFileType.IMAGE
                 );
                 // Message with image. Datatype = 1
-                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), chatFile);
+                handleChatMessage(currentUser, message, chatFile);
             } else {
                 chatFile = new ChatFile(UUID.randomUUID(),
                         attachedFile.getName(),
@@ -479,14 +501,13 @@ public class ControllerMain implements Controller {
                         ChatFileType.FILE
                 );
                 // Message with file. Datatype = 2
-                handleChatMessage(currentUser, message, dateTimeFormatter.format(currentDate), chatFile);
+                handleChatMessage(currentUser, message, chatFile);
             }
             request.putBody("chatFile", chatFile);
         } catch (IOException err) {
             fxTextAreaChatBox.setText(attachedFile.getName() + " not found!");
         }
         serverConnection.writeWithResponse(request, this);
-
         // All actions done with attached file. Set it to null pointer
         attachedFile = null;
     }

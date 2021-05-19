@@ -193,7 +193,6 @@ public class ServerConnection implements Runnable {
                 mainStage.show();
             }
             // Send ping payload to see if server is connected.
-            System.out.println(controllerLogin);
             Payload request = new Payload();
             request.setType(PayloadType.BINK);
             writeWithResponse(request, controllerLogin);
@@ -262,7 +261,6 @@ public class ServerConnection implements Runnable {
     public void killAllAndRestart() {
         currentlyOpenStages.forEach(x -> Platform.runLater(x::close));
         Platform.runLater(() ->
-            // Close all UIs
             controllerLogin.disableUserInteractions("Server connection lost!")
         );
 
@@ -270,6 +268,7 @@ public class ServerConnection implements Runnable {
         currentlyOpenStages.clear();
         passiveListeners = new ArrayList<>();
         responseWaitingControllers = new HashMap<>();
+        scheduleConnect(10);
     }
 
     /**
@@ -279,26 +278,32 @@ public class ServerConnection implements Runnable {
      * @throws IOException
      */
     public void handlePayload(Payload payload) throws IOException {
-        // Check if controller waits for response
-        if (responseWaitingControllers.containsKey(payload.getResponseTo())) {
-            try {
-                Controller controller = responseWaitingControllers.get(payload.getResponseTo());
-                controller.handleResponse(payload);
-                responseWaitingControllers.remove(payload.getResponseTo());
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        } else { // Controller
-            boolean controllerFound = false;
-            for (Controller controller : passiveListeners) {
-                if (controller.getListenTypes().contains(payload.getType())) {
+        try{
+            // Check if controller waits for response
+            if (responseWaitingControllers.containsKey(payload.getResponseTo())) {
+                try {
+                    Controller controller = responseWaitingControllers.get(payload.getResponseTo());
                     controller.handleResponse(payload);
-                    controllerFound = true;
+                    responseWaitingControllers.remove(payload.getResponseTo());
+                } catch (IOException e) {
+                    throw new UncheckedIOException(e);
+                }
+            } else { // Controller
+                boolean controllerFound = false;
+                for (Controller controller : passiveListeners) {
+                    if (controller.getListenTypes().contains(payload.getType())) {
+                        controller.handleResponse(payload);
+                        controllerFound = true;
+                    }
+                }
+                if (!controllerFound) {
+                    logger.error("Passive listener not found for payload: " + payload.toString());
                 }
             }
-            if (!controllerFound) {
-                logger.error("Passive listener not found for payload: " + payload.toString());
-            }
+        }catch (Exception e){
+            logger.error("Controller did not handle exception. Exception caught in serverConnection.handlePayload: " + e);
+            killAllAndRestart();
         }
+
     }
 }

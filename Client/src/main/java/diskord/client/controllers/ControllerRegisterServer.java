@@ -5,7 +5,6 @@ import diskord.client.ChatFile;
 import diskord.client.ChatFileType;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;

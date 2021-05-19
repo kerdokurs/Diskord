@@ -1,12 +1,9 @@
 package diskord.client.controllers;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
-
-import diskord.payload.ResponseType;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
