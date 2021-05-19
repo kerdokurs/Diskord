@@ -53,8 +53,6 @@ public class CreateServerHandler extends Handler {
 
     if (name == null || description == null || icon == null) {
       return response
-        .setType(REGISTER_SERVER_ERROR)
-        .setResponseType(TO_SELF)
         .putBody(BODY_MESSAGE, "Invalid name, description or icon");
     }
 

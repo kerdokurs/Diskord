@@ -14,26 +14,26 @@ public class ChannelTransactions {
     final UUID roomId
   ) {
     return dbManager.runTransaction(em ->
-      em.createQuery("FROM Channel c WHERE c.room.id = :roomId", Channel.class)
+      em.createQuery("FROM Channel c WHERE c.roomId = :roomId", Channel.class)
         .setParameter("roomId", roomId)
         .getResultList()
     );
   }
 
-  public static Channel createChannel(
-    final DatabaseManager dbManager,
-    final String name,
-    final Room room
-  ) {
-    final Channel channel = new Channel()
-      .setName(name)
-      .setRoom(room)
-      .setCreatedAt(new Date());
-
-    if (!dbManager.save(channel)) {
-      return null;
-    }
-
-    return channel;
-  }
+//  public static Channel createChannel(
+//    final DatabaseManager dbManager,
+//    final String name,
+//    final Room room
+//  ) {
+//    final Channel channel = new Channel()
+//      .setName(name)
+//      .setRoom(room)
+//      .setCreatedAt(new Date());
+//
+//    if (!dbManager.save(channel)) {
+//      return null;
+//    }
+//
+//    return channel;
+//  }
 }

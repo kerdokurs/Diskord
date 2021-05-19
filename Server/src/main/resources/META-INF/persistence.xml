@@ -8,6 +8,7 @@
 
     <class>diskord.server.database.user.User</class>
     <class>diskord.server.database.room.Room</class>
+    <class>diskord.server.database.channel.Channel</class>
 
     <properties>
       <property name="hibernate.hbm2ddl.auto" value="update"/>

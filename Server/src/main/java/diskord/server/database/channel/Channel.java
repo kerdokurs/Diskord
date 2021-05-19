@@ -33,13 +33,14 @@ public class Channel {
 
   @Getter
   @Setter
+  @Column(
+    columnDefinition = "TEXT"
+  )
   private String icon;
 
-  @ManyToOne
-  @JoinColumn(name = "room")
   @Getter
   @Setter
-  private Room room;
+  private UUID roomId;
 
   @Getter
   @Setter
