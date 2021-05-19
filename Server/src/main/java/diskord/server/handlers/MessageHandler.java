@@ -3,6 +3,7 @@ package diskord.server.handlers;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import diskord.payload.Payload;
+import diskord.payload.PayloadType;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.transactions.UserTransactions;
@@ -12,8 +13,9 @@ import io.netty.channel.Channel;
 
 import java.util.UUID;
 
-import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
-import static diskord.payload.ResponseType.TO_SELF;
+import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadType.MSG_ERROR;
+import static diskord.payload.ResponseType.*;
 
 public class MessageHandler extends Handler {
   protected MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
@@ -26,7 +28,13 @@ public class MessageHandler extends Handler {
     response.setResponseTo(request.getId());
 
     final String token = request.getJwt();
-    final String message = (String) request.getBody().get("message"); // TODO: Validate
+    final String message = (String) request.getBody().get(BODY_MESSAGE);
+
+    if (message.isEmpty() || message.length() >= 500) {
+      return response
+        .setType(MSG_ERROR)
+        .putBody(BODY_MESSAGE, "Invalid messge length. Message must contain 0-500 characters.");
+    }
 
     // TODO: Get and validate optionally attached file
 
@@ -39,7 +47,7 @@ public class MessageHandler extends Handler {
       final UUID messageId = UUID.randomUUID();
 
       return response
-        .setResponseType(TO_ALL_EXCEPT_SELF)
+        .setResponseType(TO_ALL)
         .putBody("id", messageId.toString())
         .putBody("message", message)
         .putBody("user_id", user.getId().toString())
@@ -47,7 +55,7 @@ public class MessageHandler extends Handler {
     } catch (final JWTVerificationException e) {
       return response
         .setResponseType(TO_SELF)
-        .putBody("message", "Error with provided login token. Try logging out and logging in.");
+        .putBody("message", "Error with provided login token. Try logging out and back in.");
     }
   }
 }

@@ -59,6 +59,7 @@ public class UserInfoServersHandler extends Handler {
       for (final JoinedServer joinedRoom : joinedRooms) {
         final Room room = joinedRoom.getRoom();
         try {
+          // Mapping ServerDTO to string for client to parse it itself
           final String serverStr = ConvertServer.convert(modelMapper, room).toJson(objectMapper);
           joinedServers.add(serverStr);
         } catch (JsonProcessingException e) {
