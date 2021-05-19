@@ -13,20 +13,9 @@ public class CurrentUser extends  User{
     private ObservableList<UUID> privilegedServers;
     @Getter
     private final String userToken;
-    public CurrentUser(String username, UUID userUUID, String userToken) {
-        super(username, userUUID);
-        this.userToken = userToken;
-        this.privilegedServers =  FXCollections.observableArrayList();
-    }
 
     public CurrentUser(String username, UUID userUUID, String userToken, String imageBase64) {
         super(username, userUUID, imageBase64);
-        this.userToken = userToken;
-        this.privilegedServers =  FXCollections.observableArrayList();
-    }
-
-    public CurrentUser(String username, UUID user, String userToken, Image image) {
-        super(username, user, image);
         this.userToken = userToken;
         this.privilegedServers =  FXCollections.observableArrayList();
     }

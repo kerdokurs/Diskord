@@ -74,7 +74,7 @@ public class ServerConnection implements Runnable {
             @Override
             public void initChannel(SocketChannel socketChannel) throws Exception {
                 ChannelPipeline pipeline = socketChannel.pipeline();
-                pipeline.addLast("framer", new DelimiterBasedFrameDecoder(65536, Delimiters.lineDelimiter()));
+                pipeline.addLast("framer", new DelimiterBasedFrameDecoder((int) 1E9, Delimiters.lineDelimiter()));
                 pipeline.addLast("encoder", new StringEncoder());
                 pipeline.addLast("decoder", new StringDecoder());
                 pipeline.addLast(messageHandler());
@@ -152,7 +152,7 @@ public class ServerConnection implements Runnable {
         return new ChannelInboundHandlerAdapter() {
             @Override
             public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
-                System.out.printf("received %s%n", msg);
+                logger.info("received {}", msg);
                 Payload payload = Payload.fromJson(new ObjectMapper(), (String) msg);
                 handlePayload(payload);
             }
@@ -259,16 +259,18 @@ public class ServerConnection implements Runnable {
      * Opens login UI and starts again
      */
     public void killAllAndRestart() {
+        logger.warn("Kill all and restart!");
         currentlyOpenStages.forEach(x -> Platform.runLater(x::close));
-        Platform.runLater(() ->
-            controllerLogin.disableUserInteractions("Server connection lost!")
+        Platform.runLater(() -> {
+                    if(controllerLogin != null){
+                        controllerLogin.disableUserInteractions("Server connection lost!");
+                    }
+                }
         );
-
         // Reset all server connection objects
         currentlyOpenStages.clear();
         passiveListeners = new ArrayList<>();
         responseWaitingControllers = new HashMap<>();
-        scheduleConnect(10);
     }
 
     /**
@@ -277,7 +279,7 @@ public class ServerConnection implements Runnable {
      * @param payload The payload that server sent
      * @throws IOException
      */
-    public void handlePayload(Payload payload) throws IOException {
+    public void handlePayload(Payload payload) {
         try{
             // Check if controller waits for response
             if (responseWaitingControllers.containsKey(payload.getResponseTo())) {
@@ -301,7 +303,8 @@ public class ServerConnection implements Runnable {
                 }
             }
         }catch (Exception e){
-            logger.error("Controller did not handle exception. Exception caught in serverConnection.handlePayload: " + e);
+            e.printStackTrace();
+            logger.error("Controller did not handle exception. Exception caught in serverConnection.handlePayload: " + Arrays.toString(e.getStackTrace()));
             killAllAndRestart();
         }
 

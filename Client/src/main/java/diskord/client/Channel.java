@@ -28,7 +28,7 @@ public class Channel {
             byte[] img = Base64.getDecoder().decode(base64Icon);
             InputStream stream = new ByteArrayInputStream(img);
             return new Image(stream, 40,40,false,true);
-        }catch (IllegalArgumentException err){
+        }catch (IllegalArgumentException | NullPointerException err){
             // Base64 is not valid. Create blank image
             return  Utils.generateImage(40,40,1,1,1,1);
         }
