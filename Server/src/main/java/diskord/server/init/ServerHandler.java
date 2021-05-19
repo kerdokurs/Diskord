@@ -5,12 +5,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
+import diskord.payload.dto.UserDTO;
 import diskord.server.ConnectedClient;
 import diskord.server.Server;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.transactions.UserTransactions;
 import diskord.server.database.user.User;
+import diskord.server.dto.ConvertUser;
 import diskord.server.handlers.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -20,10 +22,12 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.modelmapper.ModelMapper;
 
 import java.security.InvalidParameterException;
 import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
@@ -35,7 +39,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private final Server server;
   private final DatabaseManager dbManager;
   private final Logger logger = LogManager.getLogger();
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ModelMapper modelMapper = new ModelMapper();
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
@@ -107,7 +112,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("{}: {}", incoming, s);
 
-    final Payload request = Payload.fromJson(mapper, s);
+    final Payload request = Payload.fromJson(objectMapper, s);
     final Payload response;
 
     final Handler handler = handlers.get(request.getType());
@@ -127,13 +132,30 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         final String username = decoded.getSubject();
         final User user = UserTransactions.getUserByUsername(dbManager, username);
 
+        final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
+
+        // TODO: Fix later
+        final List<String> users = connectedClients.stream()
+          .map(connectedClient -> ConvertUser.convert(modelMapper, connectedClient, dbManager))
+          .filter(Objects::nonNull)
+          .map(userDto -> {
+            try {
+              return userDto.toJson(objectMapper);
+            } catch (JsonProcessingException e) {
+              e.printStackTrace();
+              return "";
+            }
+          })
+          .collect(Collectors.toList());
+
+        response.putBody("users", users);
+
         if (user != null) {
           // TODO: #computeIfAbsent
           if (!server.getChannelJoinedChannels().containsKey(channelId))
             server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
 
-          final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
-          joinedChannels.add(new ConnectedClient(user.getId(), incoming));
+          connectedClients.add(new ConnectedClient(user.getId(), incoming));
         }
 
         request.setJwt(null);
