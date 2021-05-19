@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
-import diskord.payload.dto.UserDTO;
 import diskord.server.ConnectedClient;
 import diskord.server.Server;
 import diskord.server.crypto.Auth;
@@ -32,6 +31,7 @@ import java.util.stream.Collectors;
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.*;
+import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
 import static diskord.payload.ResponseType.TO_SELF;
 
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
@@ -136,7 +136,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
         // TODO: Fix later
         final List<String> users = connectedClients.stream()
-          .map(connectedClient -> ConvertUser.convert(modelMapper, connectedClient, dbManager))
+          .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
           .filter(Objects::nonNull)
           .map(userDto -> {
             try {
@@ -149,6 +149,15 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
           .collect(Collectors.toList());
 
         response.putBody("users", users);
+
+        final Payload userJoinedPayload = new Payload()
+          .setType(INFO_USER_JOINED_CHANNEL)
+          .setResponseType(TO_ALL_EXCEPT_SELF)
+          .putBody("user", ConvertUser.convertFromUser(modelMapper, user));
+
+        for (final ConnectedClient connectedClient : connectedClients) {
+          send(connectedClient.getChannel(), userJoinedPayload);
+        }
 
         if (user != null) {
           // TODO: #computeIfAbsent
