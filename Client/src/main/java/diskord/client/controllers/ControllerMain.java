@@ -3,10 +3,12 @@ package diskord.client.controllers;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.client.*;
+import diskord.client.controllers.listview.*;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
 import diskord.payload.dto.ChannelDTO;
+import diskord.payload.dto.ChatFileDTO;
 import diskord.payload.dto.ServerDTO;
 import diskord.payload.dto.UserDTO;
 import javafx.application.Platform;
@@ -34,29 +36,24 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
 import java.io.*;
-
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+
 
 public class ControllerMain implements Controller {
 
     // FXML gui elements
     @FXML
     public ListView<ListViewServerRow> fxListViewServers;
-
     @FXML
     public ListView<ListViewChatRow> fxListViewChat;
     @FXML
     public ListView<ListViewChannelRow> fxListViewChannel;
     @FXML
     public ListView<ListViewUsersRow> fxListViewUsers;
-
     @FXML
     public Label fxLabelChatStatus;
     @FXML
@@ -73,7 +70,6 @@ public class ControllerMain implements Controller {
     public ImageView fxImageViewCurrentUserIcon;
     @FXML
     public Label fxLabelCurrentUserName;
-
 
     @FXML
     ObservableList<ListViewServerRow> listViewServerData = FXCollections.observableArrayList();
@@ -116,7 +112,7 @@ public class ControllerMain implements Controller {
         fxListViewUsers.setItems(listViewUsersData);
         // Create callback so when item is added, it will handle the new item with custom cell factory.
         fxListViewServers.setCellFactory(listView -> new CustomServerListViewCell());
-        fxListViewChat.setCellFactory(listView -> new CustomChatListViewCell());
+        fxListViewChat.setCellFactory(listView -> new CustomChatListViewCell(this));
         fxListViewChannel.setCellFactory(listView -> new CustomChannelListViewCell());
         fxListViewUsers.setCellFactory(listView -> new CustomUsersListViewCell());
         // Set Listviews not selectable.
@@ -142,7 +138,7 @@ public class ControllerMain implements Controller {
         serverMenuItem3.disableProperty().bind(
                 Bindings.createBooleanBinding(() ->
                                 fxListViewServers.getSelectionModel().getSelectedItem() == null ||
-                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid),
+                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().getUuid()),
                         fxListViewServers.getItems(),
                         currentUser.getPrivilegedServers()));
 
@@ -166,7 +162,7 @@ public class ControllerMain implements Controller {
         channelMenuItem2.disableProperty().bind(
                 Bindings.createBooleanBinding(() ->
                                 fxListViewServers.getSelectionModel().getSelectedItem() == null ||
-                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().uuid),
+                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().getUuid()),
                         fxListViewServers.getItems(),
                         currentUser.getPrivilegedServers()));
         // Disable channel contextmenu. If server is selected, then enable
@@ -201,7 +197,7 @@ public class ControllerMain implements Controller {
         PayloadBody responseBody = response.getBody();
         switch (response.getType()) {
             case INFO_USER_JOINED_CHANNEL:
-                UserDTO joinedUserDTO = (UserDTO) responseBody.get("user");
+                UserDTO joinedUserDTO = UserDTO.fromJson(objectMapper, (String)responseBody.get("user"));
                 User joinedUser = new User(
                         joinedUserDTO.getUsername(),
                         joinedUserDTO.getUserId(),
@@ -211,7 +207,7 @@ public class ControllerMain implements Controller {
                 Platform.runLater(() -> {
                     handleChatMessage(
                             joinedUser,
-                            "I joined the channel!",
+                            "Joined the channel!",
                             null
                     );
                     listViewUsersData.add(new ListViewUsersRow(
@@ -225,11 +221,11 @@ public class ControllerMain implements Controller {
                 Platform.runLater(() -> {
                     handleChatMessage(
                             leftUser,
-                            "I left the channel!",
+                            "Left the channel!",
                             null
                     );
                     // Find the user as listviewUserRow and remove it from observable listviewUsersData list.
-                    listViewUsersData.remove(listViewUsersData.stream().filter(x -> x.getName().equals(leftUser.getUsername())).findAny());
+                    listViewUsersData.removeIf(x -> x.getName().equals(leftUser.getUsername()));
                 });
                 break;
 
@@ -258,7 +254,8 @@ public class ControllerMain implements Controller {
                             serverDto.getId(),
                             serverDto.getName(),
                             serverDto.getDescription(),
-                            serverDto.getBase64Icon()
+                            serverDto.getBase64Icon(),
+                            serverDto.getJoinID()
                     );
                     Platform.runLater(() -> listViewServerData.add(
                             new ListViewServerRow(
@@ -280,7 +277,16 @@ public class ControllerMain implements Controller {
                 break;
             case INFO_CHANNELS_OK:
                 Set<String> channels = new HashSet<>(((List<String>) responseBody.get("channels")));
-                Platform.runLater(() -> fxListViewChannel.getItems().clear());
+                Platform.runLater(() -> {
+                    fxListViewChannel.setDisable(false);
+                    fxListViewUsers.setDisable(true);
+                    fxListViewChat.setDisable(true);
+                    fxButtonChatAddFile.setDisable(true);
+                    fxButtonChatSend.setDisable(true);
+                    fxTextAreaChatBox.setDisable(true);
+                    fxListViewChannel.getItems().clear();
+                });
+
                 for (final String content : channels) {
                     final ChannelDTO channelDTO = ChannelDTO.fromJson(objectMapper, content);
                     final Channel channel = new Channel(
@@ -289,12 +295,6 @@ public class ControllerMain implements Controller {
                             channelDTO.getBase64Icon()
                     );
                     Platform.runLater(() -> {
-                        fxListViewChannel.setDisable(false);
-                        fxListViewUsers.setDisable(true);
-                        fxListViewChat.setDisable(true);
-                        fxButtonChatAddFile.setDisable(true);
-                        fxButtonChatSend.setDisable(true);
-                        fxTextAreaChatBox.setDisable(true);
                         listViewChannelData.add(
                                 new ListViewChannelRow(
                                         channel.getName(),
@@ -334,16 +334,21 @@ public class ControllerMain implements Controller {
 
                 break;
             case MSG:
-                logger.info(response);
                 User user;
-
                 if (currentChatUsers.containsKey(UUID.fromString ((String) responseBody.get("user_id")))) {
                     user = currentChatUsers.get(UUID.fromString ((String) responseBody.get("user_id")));
                 } else {
                     user = new User("Unkown user", null, Utils.generateImage(40, 40, 1, 1, 1, 1));
                 }
-                if (responseBody.containsKey("chatFile")) {
-                    ChatFile chatFile = (ChatFile) responseBody.get("chatFile");
+                if (responseBody.containsKey("chat_file")) {
+                    String chatFileString = (String) responseBody.get("chat_file");
+                    ChatFileDTO chatFileDTO = ChatFileDTO.fromJson(objectMapper, chatFileString);
+                    ChatFile chatFile = new ChatFile(
+                        chatFileDTO.getFileUUID(),
+                            chatFileDTO.getFileName(),
+                            chatFileDTO.getBase64File(),
+                            ChatFileType.valueOf(chatFileDTO.getFileType())
+                    );
                     Platform.runLater(() -> handleChatMessage(user, (String) responseBody.get("message"), chatFile));
                 } else {
                     Platform.runLater(() -> handleChatMessage(user, (String) responseBody.get("message"), null));
@@ -404,6 +409,7 @@ public class ControllerMain implements Controller {
      */
     public void setCurrentUser(CurrentUser currentUser) {
         this.currentUser = currentUser;
+        currentChatUsers.put(currentUser.getUserUUID(),currentUser);
     }
 
     /**
@@ -490,9 +496,10 @@ public class ControllerMain implements Controller {
         fxTextAreaChatBox.setText("");
         fxLabelChatStatus.setText("");
         // Add written message to listviewChat
+        request.putBody("message", message);
         if (attachedFile == null) { // Only message. Datatype = 0
-            request.putBody("message", message);
             serverConnection.writeWithResponse(request, this);
+            handleChatMessage(currentUser, message,null);
             return;
         }
         try {
@@ -514,7 +521,8 @@ public class ControllerMain implements Controller {
                         ChatFileType.FILE
                 );
             }
-            request.putBody("chatFile", chatFile);
+            handleChatMessage(currentUser, message,chatFile);
+            request.putBody("chat_file", chatFile);
         } catch (IOException err) {
             fxTextAreaChatBox.setText(attachedFile.getName() + " not found!");
         }
@@ -535,14 +543,13 @@ public class ControllerMain implements Controller {
         // Open file chooser in desktop folder
         fileChooser.setInitialDirectory(new File(System.getProperty("user.home"), "Desktop"));
         attachedFile = fileChooser.showOpenDialog(mainStage);
-        if (attachedFile.length() > 1250000) {
-            fxLabelChatStatus.setText(attachedFile.getName() + " is larger than 10Mb!");
-            attachedFile = null;
-            return;
-        }
         // Check if file is selected
         if (attachedFile != null) {
             fxLabelChatStatus.setText(attachedFile.getName() + " selected!");
+            if (attachedFile.length() > 1250000) {
+                fxLabelChatStatus.setText(attachedFile.getName() + " is larger than 10Mb!");
+                attachedFile = null;
+            }
         } else {
             fxLabelChatStatus.setText("");
         }
@@ -577,6 +584,9 @@ public class ControllerMain implements Controller {
                 request.putBody("channel_id", currentChatUuid);
                 serverConnection.writeWithResponse(request, this);
 
+            }
+            if(currentChatUuid == clickedChannel.getUuid()){
+                return;
             }
             currentChatUuid = clickedChannel.getUuid();
             Payload request = new Payload();
@@ -796,312 +806,14 @@ public class ControllerMain implements Controller {
 
     ////////////////////////////////////////////////////////////////////////////////// List view custom cell factory
 
-    /**
-     * Custom listViewRow class data class. This class holds servers name, description and image.
-     */
-    private static class ListViewServerRow {
-
-        @Getter
-        private final UUID uuid;
-        @Getter
-        private final Image image;
-        @Getter
-        private final String name;
-        @Getter
-        private final String description;
-        @Getter
-        private final String joinID;
-
-        public ListViewServerRow(UUID uuid, String name, String description, Image image, String joinID) {
-
-            super();
-            this.uuid = uuid;
-            this.name = name;
-            this.description = description;
-            this.image = image;
-
-            this.joinID = joinID;
-        }
-
-        @Override
-        public String toString() {
-            return "ListViewServerRow{" +
-                    "uuid=" + uuid +
-                    ", name='" + name + '\'' +
-                    ", description='" + description + '\'' +
-                    ", joinID='" + joinID + '\'' +
-
-                    '}';
-        }
-    }
-
-    /**
-     * Custom Listview Listcell. It holds the content of single ListViewRow
-     */
-    private static class CustomServerListViewCell extends ListCell<ListViewServerRow> {
-        private final HBox content;
-        private final ImageView imageView;
-        private final Tooltip tooltip;
-
-        /**
-         * Contstructor for CustomListCell. Define variables and set the layout of single cell
-         */
-        public CustomServerListViewCell() {
-            super();
-            tooltip = new Tooltip();
-            // Set delay when the tooltip shows
-            tooltip.setShowDelay(Duration.millis(100));
-            tooltip.setHideDelay(Duration.ZERO);
-            imageView = new ImageView();
-            content = new HBox(imageView);
-            content.setSpacing(10);
-        }
-
-        @Override
-        protected void updateItem(ListViewServerRow item, boolean empty) {
-            super.updateItem(item, empty);
-            if (item != null && !empty) { // <== test for null item and empty parameter
-                tooltip.setText(
-                        item.getName() + "\n" +
-                                item.getDescription() + "\n" +
-                                item.getJoinID());
-                imageView.setImage(item.getImage());
-                Tooltip.install(content, tooltip);
-                setGraphic(content);
-            } else {
-                setGraphic(null);
-            }
-        }
-    }
-
-    /**
-     * Custom listViewRow class data class. This class holds channels name, UUID and image.
-     */
-    private static class ListViewChannelRow {
-        @Getter
-        private final String name;
-        @Getter
-        private final UUID uuid;
-        @Getter
-        private final Image image;
 
 
-        /**
-         * Custom listview row object for channel listview.
-         *
-         * @param name  The name of the channel that is displayed
-         * @param image The Image of the channel that is displayed
-         * @param uuid  The UUID of the channel.
-         */
-        public ListViewChannelRow(String name, Image image, UUID uuid) {
-            super();
-            this.uuid = uuid;
-            this.name = name;
-            this.image = image;
-        }
-
-        @Override
-        public String toString() {
-            return "listViewChannelRow{" +
-                    "name='" + name + '\'' +
-                    ", uuid=" + uuid +
-                    '}';
-        }
-    }
-
-    /**
-     * Custom Listview Listcell. It holds the content of single ListViewRow
-     */
-    private static class CustomChannelListViewCell extends ListCell<ListViewChannelRow> {
-        private HBox content;
-        private ImageView imageView;
-        private Text text;
-
-        /**
-         * Contstructor for CustomListCell. Define variables and set the layout of single cell
-         */
-        public CustomChannelListViewCell() {
-            super();
-            text = new Text();
-            imageView = new ImageView();
-            content = new HBox(imageView, text);
-            content.setSpacing(10);
-        }
-
-        @Override
-        protected void updateItem(ListViewChannelRow item, boolean empty) {
-            super.updateItem(item, empty);
-            if (item != null && !empty) { // <== test for null item and empty parameter
-                imageView.setImage(item.getImage());
-                text.setText(item.getName());
-                setGraphic(content);
-            } else {
-                setGraphic(null);
-            }
-        }
-    }
-
-    /**
-     * Custom Listview Listcell for . It holds the content of single ListViewRow
-     */
-    private static class ListViewChatRow {
-        @Getter
-        private final User user; // Get username and icon from user object
-        @Getter
-        private final String message;
-        @Getter
-        private final String timestamp; // The date when message was sent
-        @Getter
-        private final ChatFile file;
-
-        /**
-         * Custom listview row object for chat listview.
-         *
-         * @param user      User object that has UUID, name and icon
-         * @param message   Message data
-         * @param timestamp Date when message was sent
-         * @param file      ChatFile object that has file name,base64 and UUID. UUID is necessary so file can be
-         *                  requested from server with UUID.
-         */
-
-        public ListViewChatRow(User user, String message, String timestamp, ChatFile file) {
-
-            super();
-            this.user = user;
-            this.message = message;
-            this.timestamp = timestamp;
-            this.file = file;
-        }
-    }
-
-    /**
-     * Custom Listview Listcell for Chat. It holds the content of single ListViewRow
-     */
-    private class CustomChatListViewCell extends ListCell<ListViewChatRow> {
-        private final HBox content;
-        private final ImageView imageViewUserIcon; // Profile icon
-        private final Text textUsername;           // Username
-        private final Text textMessage;            // Text
-        private final Text textSentDate;           // Sent text
-        private final ImageView messageImage;      // Image in message, if there is
 
 
-        /**
-         * Contstructor for CustomListCell. Define variables and set the layout of single cell
-         */
-        public CustomChatListViewCell() {
-            super();
-            // Create instances
-            textUsername = new Text();
-            textMessage = new Text();
-            textSentDate = new Text();
-            imageViewUserIcon = new ImageView();
-            messageImage = new ImageView();
-            // Add event listener so when image is clicked, new scene opens with the image
-            messageImage.setOnMouseClicked(event -> fxEventListViewChatMessageImageOnMouseClicked());
-
-            // Set message text wrapping, so scroll bar doesnt appear
-            textMessage.wrappingWidthProperty().bind(fxListViewChat.widthProperty().subtract(70));
-
-            // Set content and its layout
-            HBox hBox = new HBox(textUsername, textSentDate);
-            hBox.setSpacing(10);
-            VBox vBox = new VBox(hBox, messageImage, textMessage);
-            content = new HBox(imageViewUserIcon, vBox);
-            content.setSpacing(10);
-        }
-
-        // When item is updated, set corresponding values to row
-        @SneakyThrows
-        @Override
-        protected void updateItem(ListViewChatRow item, boolean empty) {
-            super.updateItem(item, empty);
-            // Check if ListViewChatRow is empty
-            if (item != null && !empty) {
-                // Set username, user icon and timestamp
-                textUsername.setText(item.user.getUsername());
-                imageViewUserIcon.setImage(item.getUser().getUserImage());
-                textSentDate.setText(item.getTimestamp());
-
-                //Check dataype property to know what type of message it is
-                if (item.getFile() == null) { // Message type is only text message
-                    // Set messageImage ImageView object hidden so it doesnt take space
-                    messageImage.setVisible(false);
-                    textMessage.setText(item.getMessage());
-                } else if (item.getFile().getFileType() == ChatFileType.IMAGE) { // Message type is text with image
-                    // Set messageImage to image from listViewChatRow object
-                    messageImage.setImage(item.getFile().getImage(330));
-                    textMessage.setText(item.getMessage());
-                } else if (item.getFile().getFileType() == ChatFileType.FILE) {// Message type is file
-                    // Set messageImage to file icon.
-                    Image fileIcon = new Image(String.valueOf(getClass().getClassLoader().getResource("fileIcon.png")),
-                            50, 0, true, true);
-                    messageImage.setImage(fileIcon);
-                    // Set text message field to file name
-                    textMessage.setText(item.getFile().getFileName());
-
-                }
-                setGraphic(content);
-            } else {
-                setGraphic(null);
-            }
-        }
-    }
-
-    /**
-     * Custom listViewRow class data class.
-     */
-    private static class ListViewUsersRow {
-        @Getter
-        private final Image image;
-        @Getter
-        private final String name;
-
-        public ListViewUsersRow(String name, Image image) {
-            super();
-            this.name = name;
-            this.image = image;
-        }
-
-        @Override
-        public String toString() {
-            return "ListViewUsersRow{" +
-                    "image=" + image +
-                    ", name='" + name + '\'' +
-                    '}';
-        }
-    }
-
-    /**
-     * Custom Listview Listcell. It holds the content of single ListViewRow
-     */
-    private static class CustomUsersListViewCell extends ListCell<ListViewUsersRow> {
-        private final HBox content;
-        private final ImageView imageView;
-        private final Label label;
 
 
-        /**
-         * Contstructor for CustomListCell. Define variables and set the layout of single cell
-         */
-        public CustomUsersListViewCell() {
-            super();
-            label = new Label();
-            imageView = new ImageView();
-            content = new HBox(imageView, label);
-            content.setSpacing(10);
-        }
 
-        @Override
-        protected void updateItem(ListViewUsersRow item, boolean empty) {
-            super.updateItem(item, empty);
-            if (item != null && !empty) { // <== test for null item and empty parameter
-                label.setText(item.getName());
-                imageView.setImage(item.getImage());
-                setGraphic(content);
-            } else {
-                setGraphic(null);
-            }
-        }
-    }
+
+
+
 }

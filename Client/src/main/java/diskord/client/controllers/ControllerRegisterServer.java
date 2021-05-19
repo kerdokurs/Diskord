@@ -87,7 +87,7 @@ public class ControllerRegisterServer implements Controller{
      * Method listens for Enter key to be pressed. After that it will create server
      * @param keyEvent Event parameter that states what kind of key was pressed.
      */
-    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) throws IOException {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             fxEventButtonCreateServer();
         }
@@ -97,7 +97,7 @@ public class ControllerRegisterServer implements Controller{
      * JavaFX event in Register server scene. Method is called when register button is clicked
      * Method registers server
      */
-    public void fxEventButtonCreateServer(){
+    public void fxEventButtonCreateServer() throws IOException {
         if(!serverIconFile.exists()){
             fxLabelServerResponse.setTextFill(Color.color(1, 0, 0));
             fxLabelServerResponse.setText("Server icon not found!");
@@ -121,25 +121,11 @@ public class ControllerRegisterServer implements Controller{
             fxLabelServerResponse.setText("Server description is too large (Max 100)");
             return;
         }
-        // Craft chatFile from server icon
-        ChatFile chatFile = null;
-        try {
-            chatFile = new ChatFile(
-                    UUID.randomUUID(),
-                    serverIconFile.getName(),
-
-                    Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())),
-                    ChatFileType.IMAGE);
-        } catch (IOException e) {
-            fxLabelServerResponse.setTextFill(Color.color(1, 0, 0));
-            fxLabelServerResponse.setText("Server icon not possible to load! Try another");
-            return;
-        }
         // craft payload to server
         Payload request = new Payload();
         request.setJwt(parentController.currentUser.getUserToken());
         request.setType(PayloadType.REGISTER_SERVER);
-        request.putBody("icon",chatFile);
+        request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())));
         request.putBody("name",fxTextFieldServerName.getText());
         request.putBody("description",fxTextBoxServerDescription.getText());
         serverConnection.writeWithResponse(request,this);
