@@ -14,8 +14,7 @@ import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.MSG_ERROR;
-import static diskord.payload.ResponseType.TO_ALL;
-import static diskord.payload.ResponseType.TO_SELF;
+import static diskord.payload.ResponseType.*;
 
 public class MessageHandler extends Handler {
   public MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
@@ -47,7 +46,7 @@ public class MessageHandler extends Handler {
       final UUID messageId = UUID.randomUUID();
 
       return response
-        .setResponseType(TO_ALL)
+        .setResponseType(TO_ALL_EXCEPT_SELF)
         .putBody("id", messageId.toString())
         .putBody("message", message)
         .putBody("user_id", user.getId().toString())

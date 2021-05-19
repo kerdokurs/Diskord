@@ -113,6 +113,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     switch (response.getResponseType()) {
       case TO_ALL:
+        sendAll(response);
+        break;
+      case TO_ALL_EXCEPT_SELF:
         sendAll(response, incoming);
         break;
       case TO_ONE:
