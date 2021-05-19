@@ -3,7 +3,6 @@ package diskord.server.handlers;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import diskord.payload.Payload;
-import diskord.payload.PayloadType;
 import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.transactions.UserTransactions;
@@ -15,10 +14,11 @@ import java.util.UUID;
 
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.MSG_ERROR;
-import static diskord.payload.ResponseType.*;
+import static diskord.payload.ResponseType.TO_ALL;
+import static diskord.payload.ResponseType.TO_SELF;
 
 public class MessageHandler extends Handler {
-  protected MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
+  public MessageHandler(final DatabaseManager dbManager, final ServerHandler serverHandler) {
     super(dbManager, serverHandler);
   }
 

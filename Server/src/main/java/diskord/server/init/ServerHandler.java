@@ -39,6 +39,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     this.server = server;
     dbManager = server.getDbManager();
 
+    registerHandler(MSG, new MessageHandler(dbManager, this));
     registerHandler(BINK, new BinkHandler(dbManager, this));
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
