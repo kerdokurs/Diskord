@@ -7,10 +7,10 @@ import javax.persistence.Persistence;
 import java.util.List;
 
 public class DatabaseManager {
-  private final EntityManagerFactory factory;
+  public EntityManagerFactory factory;
 
   public DatabaseManager() {
-    factory = Persistence.createEntityManagerFactory("DiskordServer.database");
+    createEntityManagerFactory();
     System.out.println("db manager has been initialized");
   }
 
@@ -68,6 +68,7 @@ public class DatabaseManager {
         em.persist(obj);
         et.commit();
       } catch (final Exception e) {
+        e.printStackTrace();
         et.rollback();
 
         return false;
@@ -139,6 +140,8 @@ public class DatabaseManager {
    * @return result of the transaction
    */
   public <T> T runTransaction(final Transaction<T> transaction) {
+    if (!factory.isOpen()) createEntityManagerFactory();
+
     final EntityManager em = factory.createEntityManager();
 
     final T t = transaction.execute(em);
@@ -146,5 +149,10 @@ public class DatabaseManager {
     em.close();
 
     return t;
+  }
+
+  public void createEntityManagerFactory() {
+    if (factory == null || !factory.isOpen())
+      factory = Persistence.createEntityManagerFactory("DiskordServer.database");
   }
 }

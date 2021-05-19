@@ -2,6 +2,7 @@ package diskord.server.database.transactions;
 
 import diskord.server.database.DatabaseManager;
 import diskord.server.database.room.Room;
+import diskord.server.database.user.JoinedServer;
 import diskord.server.database.user.User;
 
 import java.util.List;
@@ -12,11 +13,18 @@ public class RoomTransactions {
     return dbManager.getAll(Room.class, "Room");
   }
 
-  public static Room getRoomByUUID(final DatabaseManager dbManager, final UUID roomId){
+  public static Room getRoomByUUID(final DatabaseManager dbManager, final UUID roomId) {
     return dbManager.runTransaction(em ->
       em.createQuery("FROM Room u WHERE u.id = :roomId", Room.class)
         .setParameter("roomId", roomId)
         .getSingleResult()
+    );
+  }
+
+  public static Room getRoomByJoinId(final DatabaseManager dbManager, final String joinId) {
+    return dbManager.runTransaction(em -> em.createQuery("FROM Room u WHERE u.joinId = :joinId", Room.class)
+      .setParameter("joinId", joinId)
+      .getSingleResult()
     );
   }
 }

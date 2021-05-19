@@ -13,6 +13,9 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.paint.Color;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import lombok.SneakyThrows;
@@ -63,7 +66,6 @@ public class ControllerLogin implements Controller {
             loginProperties.loadFromXML(new FileInputStream(loginPropertiesFile));
         }
 
-
         // Check if username is saved
         if(loginProperties.getProperty("saveUsername").equals("True")){
             fxTextFieldUsername.setText(loginProperties.getProperty("username"));
@@ -71,10 +73,61 @@ public class ControllerLogin implements Controller {
     }
 
     /**
+     * Method disables login UI elements and shows disable message in UI
+     * @param disableMessage String reason for disable that is showed in UI
+     */
+    public void disableUserInteractions(String disableMessage){
+        fxTextFieldUsername.setDisable(true);
+        fxTextFieldPassword.setDisable(true);
+        fxButtonRegister.setDisable(true);
+        fxButtonSignIn.setDisable(true);
+        Platform.runLater(() -> {
+            fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelLoginErrorMessage.setText(disableMessage);
+        });
+    }
+
+    /**
+     * Method enables login UI elements and shows disable message in UI
+     * @param enableMessage String reason for enable that is showed in UI
+     */
+    public void enableUserInteractions(String enableMessage){
+        fxTextFieldUsername.setDisable(false);
+        fxTextFieldPassword.setDisable(false);
+        fxButtonRegister.setDisable(false);
+        fxButtonSignIn.setDisable(false);
+        Platform.runLater(() -> {
+            fxLabelLoginErrorMessage.setTextFill(Color.color(0, 1, 0));
+            fxLabelLoginErrorMessage.setText(enableMessage);
+        });
+    }
+
+    /**
+     * JavaFX event in Login scene. Method is called when key is pressed in fxTextFieldPassword or fxTextFieldUsername.
+     * Method listens for Enter key to be pressed. After that it will login
+     * @param keyEvent Event parameter that states what kind of key was pressed.
+     */
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            fxEventButtonActionSignIn();
+        }
+    }
+
+    /**
      * JavaFX event in Login scene. Method is called when Login button is clicked.
      * Method will attempt to login user. If not possible, it will notify user why login failed.
      */
-    public void fxEventButtonActionSignIn() throws IOException {
+    public void fxEventButtonActionSignIn() {
+        if(fxTextFieldUsername.getText().length() == 0){
+            fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelLoginErrorMessage.setText("Username is empty!");
+            return;
+        }
+        if(fxTextFieldPassword.getText().length() == 0){
+            fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelLoginErrorMessage.setText("Password is empty!");
+            return;
+        }
         //Handle client login
         Payload loginPayload = new Payload();
         loginPayload.setType(PayloadType.LOGIN);
@@ -119,12 +172,19 @@ public class ControllerLogin implements Controller {
      * responds with payload, the response UUID is used to find the controller that made
      * that payload and handleResponse is called with the servers response payload
      * @param response Payload that server sent
-     * @throws IOException
+     * @throws IOException Throws IO exception when xml file is not found when loading fxml file
      */
     @Override
     public void handleResponse(Payload response) throws IOException {
         PayloadBody responseBody = response.getBody();
         switch (response.getType()){
+            case BONK:
+                // Check if UI is disabled.
+                // If it is, show recovery message
+                if(fxButtonSignIn.isDisable()){
+                    enableUserInteractions("Connection restored!");
+                }
+                break;
             case LOGIN_OK:
                 // Save current settings to properties
                 loginProperties.setProperty("saveUsername","True");
@@ -146,38 +206,39 @@ public class ControllerLogin implements Controller {
                     // Open main window
                     FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
                     Parent mainRoot = null;
+                    //TODO Why do i have to try catch when method signature contains IOException ?!!
                     try {
                         mainRoot = (Parent)mainLoader.load();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                       throw new UncheckedIOException(e);
                     }
                     ControllerMain mainController = (ControllerMain) mainLoader.getController();
-
                     // Make stage not resizable
                     mainStage.setResizable(false);
-
                     // Pass parameters to controllers
                     mainController.setMainStage(mainStage);
                     mainController.setCurrentUser(currentUser);
                     mainController.setServerConnection(serverConnection);
-                    try {
-                        mainController.init();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
+                    mainController.init();
                     mainStage.setTitle("Chat");
                     mainStage.setScene(new Scene(mainRoot));
                     mainStage.show();
+                    // ServerConnection login window ui flow management
+                    serverConnection.setControllerLogin(null);
                 });
                 break;
             case LOGIN_ERROR:
-                // All FX interaction must be done in this
-                Platform.runLater(() -> fxLabelLoginErrorMessage.setText((String)responseBody.get("message")));
-
+                Platform.runLater(() -> {
+                    fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+                    fxLabelLoginErrorMessage.setText((String)responseBody.get("message"));
+                });
                 break;
             default:
                 // Servers response was not expected
-                Platform.runLater(() -> fxLabelLoginErrorMessage.setText("Server sent unrecognisable payload type: " + response.getType()));
+                Platform.runLater(() -> {
+                    fxLabelLoginErrorMessage.setTextFill(Color.color(1, 0, 0));
+                    fxLabelLoginErrorMessage.setText("Server sent unrecognisable payload type: " + response.getType());
+                });
                 break;
         }
     }
@@ -201,7 +262,7 @@ public class ControllerLogin implements Controller {
     /**
      * Method to set Main stage. It is needed when opening new stage and making javaFX
      * focus the new stage
-     * @param mainStage
+     * @param mainStage The stage that is set as mainStage
      */
     public void setMainStage(Stage mainStage) {
         this.mainStage = mainStage;
@@ -220,7 +281,7 @@ public class ControllerLogin implements Controller {
     /**
      * Method that sets serversConnection class. It is needed so client can communicate with
      * server and vice versa
-     * @param serverConnection
+     * @param serverConnection The serverConnection class that is set as private serverConnection
      */
     public void setServerConnection(ServerConnection serverConnection){
         this.serverConnection = serverConnection;

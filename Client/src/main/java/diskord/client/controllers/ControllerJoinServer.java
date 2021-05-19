@@ -1,20 +1,19 @@
 package diskord.client.controllers;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
 import javafx.application.Platform;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
-import org.apache.logging.log4j.core.config.plugins.util.ResolverUtil;
 
 import java.io.IOException;
 import java.util.Set;
@@ -38,7 +37,7 @@ public class ControllerJoinServer implements Controller {
     }
 
     @Override
-    public void handleResponse(Payload response) throws IOException {
+    public void handleResponse(Payload response){
         PayloadBody responseBody = response.getBody();
         switch (response.getType()){
             case JOIN_SERVER_OK:
@@ -46,7 +45,7 @@ public class ControllerJoinServer implements Controller {
                     fxLabelMessage.setTextFill(Color.color(0, 1, 0));
                     fxLabelMessage.setText("Joined server");
                 });
-                parentController.getUserSuscribedServers();
+                parentController.getUserSubscribedServers();
                 break;
             case JOIN_SERVER_ERROR:
                 Platform.runLater(() -> {
@@ -61,6 +60,17 @@ public class ControllerJoinServer implements Controller {
                     fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
                 });
                 break;
+        }
+    }
+
+    /**
+     * JavaFX event in JoinServer scene. Method is called when key is pressed in fxTextField
+     * Method listens for Enter key to be pressed. After that it will join server
+     * @param keyEvent Event parameter that states what kind of key was pressed.
+     */
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            fxEventButtonJoinServer();
         }
     }
 
@@ -88,7 +98,7 @@ public class ControllerJoinServer implements Controller {
      * JavaFX event  in Join server scene. Method is called when Join server is clicked.
      * Method joins user to server
      */
-    public void fxEventButtonJoinServer() throws IOException {
+    public void fxEventButtonJoinServer(){
         if(fxTextFieldServerID.getText().length() == 0){
             fxLabelMessage.setTextFill(Color.color(1, 0, 0));
             fxLabelMessage.setText("ID is empty!");
@@ -97,10 +107,8 @@ public class ControllerJoinServer implements Controller {
         Payload request = new Payload();
         request.setJwt(parentController.currentUser.getUserToken());
         request.setType(PayloadType.JOIN_SERVER);
-        request.putBody("joinID", fxTextFieldServerID.getText());
+        request.putBody("join_id", fxTextFieldServerID.getText());
 
-        //TODO send request to server
-        //TODO replace test data
-        handleResponse(TestData.getJoinServer());
+        serverConnection.writeWithResponse(request,this);
     }
 }

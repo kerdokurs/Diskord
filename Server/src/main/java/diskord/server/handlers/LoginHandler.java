@@ -71,13 +71,16 @@ public class LoginHandler extends Handler {
       // Comparing the passwords
       if (user.getPassword().equals(hashedPassword)) {
         // Login was successful, generating jsonwebtoken
-        String loginToken = Auth.encode(user.getUsername(), Map.of());
+        String loginToken = Auth.encode(user.getUsername());
 
         //username - Auth.decode(loginToken).getSubject();
         // Populating response with proper data
         response
           .setType(LOGIN_OK)
-          .putBody(BODY_TOKEN, loginToken);
+          .putBody(BODY_TOKEN, loginToken)
+          .putBody("username", user.getUsername())
+          .putBody("uuid", user.getId())
+          .putBody("icon", user.getIcon());
       } else {
         // Password was incorrect, inform client
         response

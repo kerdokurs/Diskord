@@ -1,11 +1,17 @@
 package diskord.server.init;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
+import diskord.server.ConnectedClient;
 import diskord.server.Server;
+import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
+import diskord.server.database.transactions.UserTransactions;
+import diskord.server.database.user.User;
+import diskord.server.dto.ConvertUser;
 import diskord.server.handlers.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -15,16 +21,17 @@ import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.modelmapper.ModelMapper;
 
-import java.nio.ByteBuffer;
 import java.security.InvalidParameterException;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.stream.Collectors;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
 import static diskord.payload.PayloadType.*;
+import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
 import static diskord.payload.ResponseType.TO_SELF;
 
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
@@ -32,7 +39,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private final Server server;
   private final DatabaseManager dbManager;
   private final Logger logger = LogManager.getLogger();
-  private final ObjectMapper mapper = new ObjectMapper();
+  private final ObjectMapper objectMapper = new ObjectMapper();
+  private final ModelMapper modelMapper = new ModelMapper();
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
@@ -40,12 +48,30 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     this.server = server;
     dbManager = server.getDbManager();
 
+    registerHandler(MSG, new MessageHandler(dbManager, this));
+    registerHandler(BINK, new BinkHandler(dbManager, this));
     registerHandler(LOGIN, new LoginHandler(dbManager, this));
     registerHandler(REGISTER, new RegisterHandler(dbManager, this));
     registerHandler(JOIN_SERVER, new JoinServerHandler(dbManager, this));
     registerHandler(INFO_USER_SERVERS, new UserInfoServersHandler(dbManager, this));
     registerHandler(INFO_CHANNELS, new InfoChannelsHandler(dbManager, this));
 
+    registerHandler(JOIN_CHANNEL, new JoinChannelHandler(dbManager, this));
+    registerHandler(LEAVE_CHANNEL, new LeaveChannelHandler(dbManager, this));
+
+//    final User user = UserTransactions.getUserByUsername(dbManager, "kerdo");
+//    System.out.println(user);
+//    final List<JoinedServer> userJoinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
+//    for (final JoinedServer userJoinedRoom : userJoinedRooms) {
+//      System.out.printf("Deleted room %s%n", userJoinedRoom);
+//      dbManager.delete(userJoinedRoom);
+//    }
+//
+//    final List<Room> rooms = RoomTransactions.getRooms(dbManager);
+//    for (final Room room : rooms) {
+//      System.out.printf("Deleted room %s%n", room);
+//      dbManager.delete(room);
+//    }
   }
 
   @Override
@@ -54,9 +80,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("incoming connection from {}", incoming);
 
-    for (Channel channel : channels) {
-      channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
-    }
+    // for (Channel channel : channels) {
+    //   channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
+    // }
 
     channels.add(incoming);
   }
@@ -73,9 +99,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("{} has disconnected", incoming);
 
-    for (Channel channel : channels) {
-      channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
-    }
+    //for (Channel channel : channels) {
+    //  channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
+    //}
 
     channels.remove(incoming);
   }
@@ -86,7 +112,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("{}: {}", incoming, s);
 
-    final Payload request = Payload.fromJson(mapper, s);
+    final Payload request = Payload.fromJson(objectMapper, s);
     final Payload response;
 
     final Handler handler = handlers.get(request.getType());
@@ -97,8 +123,74 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
       response = unhandledRequest(request);
     }
 
+    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK)) {
+      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+      final String jwt = request.getJwt();
+
+      if (jwt != null) {
+        final DecodedJWT decoded = Auth.decode(jwt);
+        final String username = decoded.getSubject();
+        final User user = UserTransactions.getUserByUsername(dbManager, username);
+
+        final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
+
+        // TODO: Fix later
+        final List<String> users = connectedClients.stream()
+          .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
+          .filter(Objects::nonNull)
+          .map(userDto -> {
+            try {
+              return userDto.toJson(objectMapper);
+            } catch (JsonProcessingException e) {
+              e.printStackTrace();
+              return "";
+            }
+          })
+          .collect(Collectors.toList());
+
+        response.putBody("users", users);
+
+        final Payload userJoinedPayload = new Payload()
+          .setType(INFO_USER_JOINED_CHANNEL)
+          .setResponseType(TO_ALL_EXCEPT_SELF)
+          .putBody("user", ConvertUser.convertFromUser(modelMapper, user));
+
+        for (final ConnectedClient connectedClient : connectedClients) {
+          send(connectedClient.getChannel(), userJoinedPayload);
+        }
+
+        if (user != null) {
+          // TODO: #computeIfAbsent
+          if (!server.getChannelJoinedChannels().containsKey(channelId))
+            server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
+
+          connectedClients.add(new ConnectedClient(user.getId(), incoming));
+        }
+
+        request.setJwt(null);
+      }
+    }
+
+    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK)) {
+      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+
+      // TODO: #computeIfAbsent
+      if (!server.getChannelJoinedChannels().containsKey(channelId))
+        server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
+
+      final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
+      joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
+
+      request.setJwt(null);
+    }
+
+    System.out.println(server.getChannelJoinedChannels());
+
     switch (response.getResponseType()) {
       case TO_ALL:
+        sendAll(response);
+        break;
+      case TO_ALL_EXCEPT_SELF:
         sendAll(response, incoming);
         break;
       case TO_ONE:
@@ -116,7 +208,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
     // TODO: What to do with the caught exception?
     logger.error("Exception has been caught", cause);
-    ctx.close();
+//    ctx.close(); // TODO: Decide what to do when exception is caught. Maybe notify user of server fatal error (500)?
   }
 
   /**
@@ -140,7 +232,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @param payload payload to send
    */
   public void send(final Channel channel, final Payload payload) {
-    //channel.writeAndFlush(payload); //TODO: test & not working for sure
+    try {
+      channel.writeAndFlush(payload.toJson(new ObjectMapper()) + "\r\n");
+    } catch (JsonProcessingException e) {
+      e.printStackTrace();
+    }
   }
 
   /**

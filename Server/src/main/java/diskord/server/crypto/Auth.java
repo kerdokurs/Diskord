@@ -13,12 +13,11 @@ public class Auth {
   private final static Algorithm algorithm = Algorithm.HMAC256("secret"); // TODO: put this in config
   private final static JWTVerifier verifier = JWT.require(algorithm).withIssuer("diskord").build();
 
-  public static String encode(final String subject, final Map<String, Object> claims) {
+  public static String encode(final String subject) {
     return JWT.create()
       .withSubject(subject)
       .withIssuer("diskord")
       .withIssuedAt(new Date())
-      .withPayload(claims)
       .sign(algorithm);
   }
 
