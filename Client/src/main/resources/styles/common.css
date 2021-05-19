@@ -1,0 +1,36 @@
+.root, .panes, .list-view{
+    -fx-background-color: #36393f;
+    -fx-border-style: solid;
+    -fx-border-radius: 5px;
+    -fx-border-color: #565656;
+    -fx-border-width: 2px;
+}
+
+.list-cell{
+    -fx-background-color: #36393f;
+}
+
+.button, .text-field, .text-area ,.text-area .content , .menu-item{
+    -fx-background-color: #565656;
+    -fx-text-fill: #ffffff;
+    /* radius */
+    -fx-border-style: solid;
+    -fx-border-radius: 5px;
+    -fx-border-color: #565656;
+    -fx-border-width: 2px;
+    /* Text Input control */
+    -fx-highlight-fill	: #929292;
+    -fx-highlight-text-fill	: #929292;
+}
+
+.label{
+    -fx-background-color: #36393f;
+    -fx-text-fill: #ffffff;
+
+}
+.text-field{
+    -fx-prompt-text-fill: #929292;
+    -fx-control-inner-background: #565656;
+    -fx-background-color: #565656;
+    -fx-display-caret: #ffffff;
+}

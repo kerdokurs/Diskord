@@ -15,22 +15,18 @@ public class Server {
     @Getter
     private final String base64Icon;
     @Getter
-
     private final String joinID;
 
     public Server(UUID id, String name, String description, String base64Icon) {
-
         this.id = id;
         this.name = name;
         this.description = description;
         this.base64Icon = base64Icon;
         this.joinID = "Join ID: " + id.toString().substring(0,7);
-
     }
 
     /**
      * Creates Image from base64
-     * @param imageBase64 Base64 string
      * @return Image for server
      */
     public Image getServerIconFromBase64(){

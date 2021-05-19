@@ -46,9 +46,9 @@
 <?import javafx.scene.paint.Color?>
 <?import javafx.scene.text.Font?>
 
-<VBox prefHeight="600.0" prefWidth="1032.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerMain">
+<VBox prefHeight="600.0" prefWidth="1032.0" stylesheets="@styles/common.css" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerMain">
   <children>
-    <SplitPane fx:id="fxSplitPane" dividerPositions="0.2505567928730512, 0.7427616926503341" focusTraversable="true" VBox.vgrow="ALWAYS">
+    <SplitPane fx:id="fxSplitPane" dividerPositions="0.2505567928730512, 0.7427616926503341" focusTraversable="true" styleClass="panes" VBox.vgrow="ALWAYS">
       <items>
         <AnchorPane SplitPane.resizableWithParent="false">
           <children>
@@ -60,10 +60,10 @@
                 <Color red="0.624" green="0.624" blue="0.624" fx:id="x2" />
               </textFill>
             </Label>
-                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="427.0" prefWidth="60.0" AnchorPane.bottomAnchor="83.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="184.0" AnchorPane.topAnchor="41.0" />
+                  <ListView fx:id="fxListViewServers" layoutX="11.0" layoutY="41.0" prefHeight="452.0" prefWidth="58.0" AnchorPane.bottomAnchor="75.0" AnchorPane.leftAnchor="11.0" AnchorPane.rightAnchor="184.0" AnchorPane.topAnchor="41.0" />
 
                   <ImageView fx:id="fxImageViewCurrentUserIcon" fitHeight="60.0" fitWidth="60.0" layoutX="11.0" layoutY="502.0" pickOnBounds="true" preserveRatio="true" />
-                  <Label fx:id="fxLabelCurrentUserName" layoutX="81.0" layoutY="524.0" prefHeight="17.0" prefWidth="147.0" text="Label" />
+                  <Label fx:id="fxLabelCurrentUserName" layoutX="83.0" layoutY="524.0" prefHeight="17.0" prefWidth="145.0" text="Label" />
                   <ListView fx:id="fxListViewChannel" layoutX="81.0" layoutY="41.0" prefHeight="452.0" prefWidth="159.0" />
 
                   <Label alignment="CENTER" layoutX="81.0" layoutY="14.0" minWidth="60.0" prefWidth="-1.0" style="&#10;" text="Channels" textAlignment="CENTER" wrapText="false">
@@ -86,11 +86,11 @@
                         <Font size="18.0" fx:id="x6" />
                      </font>
                   </Label>
-                  <ListView fx:id="fxListViewChat" layoutX="14.0" layoutY="41.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="427.0" prefWidth="411.0" AnchorPane.bottomAnchor="83.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="11.0" AnchorPane.topAnchor="41.0" />
+                  <ListView fx:id="fxListViewChat" layoutX="14.0" layoutY="41.0" minHeight="-Infinity" minWidth="-Infinity" prefHeight="452.0" prefWidth="472.0" AnchorPane.bottomAnchor="75.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="11.0" AnchorPane.topAnchor="41.0" />
                   <Label fx:id="fxLabelChatStatus" layoutX="14.0" layoutY="523.0" prefHeight="17.0" prefWidth="411.0" AnchorPane.bottomAnchor="11.0" AnchorPane.leftAnchor="14.0" AnchorPane.rightAnchor="11.0" />
-                  <Button fx:id="fxButtonChatSend" layoutX="376.0" layoutY="479.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#fxEventButtonSendChat" prefHeight="37.0" prefWidth="50.0" text="Send" AnchorPane.bottomAnchor="29.0" AnchorPane.rightAnchor="10.0" />
-                  <Button fx:id="fxButtonChatAddFile" ellipsisString="+" layoutX="14.0" layoutY="486.0" mnemonicParsing="false" onAction="#fxEventButtonAddFile" prefHeight="36.0" prefWidth="36.0" text="+" AnchorPane.bottomAnchor="29.0" AnchorPane.leftAnchor="14.0" />
-                  <TextArea fx:id="fxTextAreaChatBox" layoutX="58.0" layoutY="480.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#fxEventTextAreaOnKeyPressedChat" prefHeight="37.0" prefWidth="308.0" AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="58.0" AnchorPane.rightAnchor="70.0" />
+                  <Button fx:id="fxButtonChatSend" layoutX="376.0" layoutY="479.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#fxEventButtonSendChat" prefHeight="42.0" prefWidth="50.0" text="Send" AnchorPane.bottomAnchor="29.0" AnchorPane.rightAnchor="10.0" />
+                  <Button fx:id="fxButtonChatAddFile" ellipsisString="+" layoutX="14.0" layoutY="499.0" mnemonicParsing="false" onAction="#fxEventButtonAddFile" prefHeight="42.0" prefWidth="44.0" text="+" AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="14.0" />
+                  <TextArea fx:id="fxTextAreaChatBox" layoutX="63.0" layoutY="480.0" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" onKeyPressed="#fxEventTextAreaOnKeyPressedChat" prefHeight="42.0" prefWidth="364.0" styleClass="text-area" AnchorPane.bottomAnchor="28.0" AnchorPane.leftAnchor="63.0" AnchorPane.rightAnchor="70.0" />
         </children>
       </AnchorPane>
         <AnchorPane prefHeight="551.0" prefWidth="189.0" SplitPane.resizableWithParent="false">

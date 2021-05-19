@@ -16,21 +16,7 @@ public class User {
     private final UUID userUUID;
     @Getter
     private final Image userImage;
-
     private final Logger logger = LogManager.getLogger(getClass().getName());
-
-    /**
-     * User constructor that takes in username and user UUID
-     * User icon is retrieved from appdata/diskord folder by UUID
-     * @param username
-     * @param userUUID
-     */
-    public User(String username, UUID userUUID) {
-        this.username = username;
-        this.userUUID = userUUID;
-        this.userImage = getUserIconFromFile();
-    }
-
     /**
      * User constructor that takes in username, user UUID and base 64 string of icon
      * @param username
@@ -62,22 +48,6 @@ public class User {
         this.username = username;
         this.userUUID = userUUID;
         this.userImage = image;
-    }
-
-    public Image getUserIconFromFile(){
-        File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
-        // Check if user icon exists by UUID
-        File icon = new File(diskordDir, "userIcons/" + userUUID.toString() + ".png");
-        try{
-            if(icon.exists()){
-                return new Image(new FileInputStream(icon), 40,40,false,true);
-            }else{
-                return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
-            }
-        }catch (FileNotFoundException err){
-            logger.error(err.getMessage());
-            return new Image(String.valueOf(getClass().getClassLoader().getResource("emptyProfileIcon.png")), 50,0,true,true);
-        }
     }
 
     @Override
