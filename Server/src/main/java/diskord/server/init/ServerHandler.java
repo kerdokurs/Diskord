@@ -13,6 +13,8 @@ import diskord.server.database.transactions.UserTransactions;
 import diskord.server.database.user.User;
 import diskord.server.dto.ConvertUser;
 import diskord.server.handlers.*;
+import diskord.server.handlers.channels.CreateChannelHandler;
+import diskord.server.handlers.servers.CreateServerHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -57,6 +59,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     registerHandler(JOIN_CHANNEL, new JoinChannelHandler(dbManager, this));
     registerHandler(LEAVE_CHANNEL, new LeaveChannelHandler(dbManager, this));
+
+    registerHandler(REGISTER_SERVER, new CreateServerHandler(dbManager, this));
+    registerHandler(REGISTER_CHANNEL, new CreateChannelHandler(dbManager, this));
   }
 
   @Override
