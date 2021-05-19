@@ -8,7 +8,7 @@
 
 <VBox maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="160.0" prefWidth="218.0" xmlns="http://javafx.com/javafx/15.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="diskord.client.controllers.ControllerJoinServer">
    <children>
-      <AnchorPane prefHeight="160.0" prefWidth="307.0">
+      <AnchorPane prefHeight="160.0" prefWidth="307.0" styleClass="panes" stylesheets="@styles/common.css">
          <children>
             <TextField fx:id="fxTextFieldServerID" layoutX="58.0" layoutY="59.0" onKeyPressed="#fxEventTextFieldOnKeyPressed" prefHeight="25.0" prefWidth="103.0" />
             <Label layoutX="85.0" layoutY="30.0" text="Server ID" />

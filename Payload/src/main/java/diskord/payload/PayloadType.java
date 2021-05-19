@@ -23,7 +23,7 @@ public enum PayloadType {
   MSG_ERROR,
 
   // JOIN_CHANNEL body properties
-  // Key: "channel_uuid" value:(UUID) channels uuid
+  // Key: "channel_id" value:(UUID) channels uuid
   JOIN_CHANNEL,
   // JOIN_CHANNEL_OK body properties
   // Key: "users" value: (User[]) Currently joined users
@@ -33,7 +33,7 @@ public enum PayloadType {
   JOIN_CHANNEL_ERROR,
 
   // LEAVE CHANNEL body properties
-  // Nothing
+  // key: "channel_id" value:(UUID) channels uuid
   LEAVE_CHANNEL,
   LEAVE_CHANNEL_OK,
   // LEAVE_CHANNEL_ERROR body properties
@@ -70,7 +70,7 @@ public enum PayloadType {
   // Request to server
   //INFO_CHANNELS body properties
   //TODO serverUUID -> server_id
-  // Key: "serverId" value: (UUID) Server UUID
+  // Key: "server_id" value: (UUID) Server UUID
   INFO_CHANNELS,
   // Response from server
   //INFO_CHANNELS_OK body properties

@@ -16,8 +16,8 @@ public class Client extends Application {
   public void start(Stage stage){
 
     // Establish connection to server and show login screen
-    // ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("4.tcp.eu.ngrok.io",19261), stage);
-    ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192), stage);
+    ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("0.tcp.eu.ngrok.io",18416), stage);
+    //ServerConnection serverConnection = new ServerConnection(new InetSocketAddress("localhost",8192), stage);
     Thread serverThread = new Thread(serverConnection);
     serverThread.start();
   }
