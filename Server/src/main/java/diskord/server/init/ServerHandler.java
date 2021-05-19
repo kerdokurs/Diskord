@@ -13,6 +13,8 @@ import diskord.server.database.transactions.UserTransactions;
 import diskord.server.database.user.User;
 import diskord.server.dto.ConvertUser;
 import diskord.server.handlers.*;
+import diskord.server.handlers.channels.CreateChannelHandler;
+import diskord.server.handlers.servers.CreateServerHandler;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -28,8 +30,7 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
-import static diskord.payload.PayloadBody.BODY_INVALID;
-import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.*;
 import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
 import static diskord.payload.ResponseType.TO_SELF;
@@ -59,30 +60,15 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     registerHandler(JOIN_CHANNEL, new JoinChannelHandler(dbManager, this));
     registerHandler(LEAVE_CHANNEL, new LeaveChannelHandler(dbManager, this));
 
-//    final User user = UserTransactions.getUserByUsername(dbManager, "kerdo");
-//    System.out.println(user);
-//    final List<JoinedServer> userJoinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
-//    for (final JoinedServer userJoinedRoom : userJoinedRooms) {
-//      System.out.printf("Deleted room %s%n", userJoinedRoom);
-//      dbManager.delete(userJoinedRoom);
-//    }
-//
-//    final List<Room> rooms = RoomTransactions.getRooms(dbManager);
-//    for (final Room room : rooms) {
-//      System.out.printf("Deleted room %s%n", room);
-//      dbManager.delete(room);
-//    }
+    registerHandler(REGISTER_SERVER, new CreateServerHandler(dbManager, this));
+    registerHandler(REGISTER_CHANNEL, new CreateChannelHandler(dbManager, this));
   }
 
   @Override
-  public void handlerAdded(final ChannelHandlerContext ctx) throws Exception {
-    Channel incoming = ctx.channel();
+  public void handlerAdded(final ChannelHandlerContext ctx) {
+    final Channel incoming = ctx.channel();
 
     logger.info("incoming connection from {}", incoming);
-
-    // for (Channel channel : channels) {
-    //   channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
-    // }
 
     channels.add(incoming);
   }
@@ -94,14 +80,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(final ChannelHandlerContext ctx) {
     Channel incoming = ctx.channel();
 
     logger.info("{} has disconnected", incoming);
-
-    //for (Channel channel : channels) {
-    //  channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
-    //}
 
     channels.remove(incoming);
   }
@@ -123,68 +105,23 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
       response = unhandledRequest(request);
     }
 
-    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK)) {
-      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
-      final String jwt = request.getJwt();
+    // Handling additional logic when a user joins OK
+    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK))
+      handleUsersOnJoin(incoming, request, response);
 
-      if (jwt != null) {
-        final DecodedJWT decoded = Auth.decode(jwt);
-        final String username = decoded.getSubject();
-        final User user = UserTransactions.getUserByUsername(dbManager, username);
+    // Handling additional logic when a user leaves OK
+    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK))
+      handleUsersOnLeave(incoming, request);
 
-        final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
-
-        // TODO: Fix later
-        final List<String> users = connectedClients.stream()
-          .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
-          .filter(Objects::nonNull)
-          .map(userDto -> {
-            try {
-              return userDto.toJson(objectMapper);
-            } catch (JsonProcessingException e) {
-              e.printStackTrace();
-              return "";
-            }
-          })
-          .collect(Collectors.toList());
-
-        response.putBody("users", users);
-
-        final Payload userJoinedPayload = new Payload()
-          .setType(INFO_USER_JOINED_CHANNEL)
-          .setResponseType(TO_ALL_EXCEPT_SELF)
-          .putBody("user", ConvertUser.convertFromUser(modelMapper, user));
-
-        for (final ConnectedClient connectedClient : connectedClients) {
-          send(connectedClient.getChannel(), userJoinedPayload);
-        }
-
-        if (user != null) {
-          // TODO: #computeIfAbsent
-          if (!server.getChannelJoinedChannels().containsKey(channelId))
-            server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
-
-          connectedClients.add(new ConnectedClient(user.getId(), incoming));
-        }
-
-        request.setJwt(null);
-      }
+    if (request.getType().equals(MSG) && response.getType().equals(MSG)) {
+      final Payload msgOkPayload = new Payload()
+        .setType(MSG_OK)
+        .setResponseType(TO_SELF)
+        .setResponseTo(request.getId());
+      send(incoming, msgOkPayload);
     }
 
-    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK)) {
-      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
-
-      // TODO: #computeIfAbsent
-      if (!server.getChannelJoinedChannels().containsKey(channelId))
-        server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
-
-      final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
-      joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
-
-      request.setJwt(null);
-    }
-
-    System.out.println(server.getChannelJoinedChannels());
+//    System.out.println(server.getChannelJoinedChannels());
 
     switch (response.getResponseType()) {
       case TO_ALL:
@@ -192,6 +129,24 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         break;
       case TO_ALL_EXCEPT_SELF:
         sendAll(response, incoming);
+        break;
+      case TO_CHANNEL_EXCEPT_SELF:
+        final UUID channelId = server.getChannelJoinedChannels()
+          .entrySet()
+          .stream()
+          .filter(joinedChannel ->
+            joinedChannel.getValue()
+              .stream()
+              .anyMatch(connectedClient -> connectedClient.getChannel().equals(incoming))
+          )
+          .map(Entry::getKey)
+          .findFirst()
+          .orElse(null);
+
+        if (channelId == null)
+          break;
+
+        sendAll(response, channelId, incoming);
         break;
       case TO_ONE:
         // Reply-to a user type of payload
@@ -204,11 +159,104 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     }
   }
 
+  /**
+   * Method for handling additional leave logic when a client leaves from a server's channel
+   *
+   * @param incoming client
+   * @param request  request payload
+   */
+  private void handleUsersOnLeave(final Channel incoming, final Payload request) {
+    final UUID channelId = UUID.fromString((String) request.getBody().get(BODY_CHANNEL_ID));
+
+    final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels()
+      .computeIfAbsent(channelId, x -> new ArrayBlockingQueue<>(100));
+
+    final ConnectedClient client = joinedChannels
+      .stream()
+      .filter(connectedClient -> connectedClient.getChannel().equals(incoming))
+      .findFirst()
+      .orElse(null);
+
+    if (client == null)
+      return;
+
+    final Payload userLeftPayload = new Payload()
+      .setType(INFO_USER_LEFT_CHANNEL)
+      .setResponseType(TO_ALL_EXCEPT_SELF)
+      .putBody("user_id", client.getUserId().toString());
+
+    // Removing the user from the channel when its there
+    joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
+
+    sendAll(userLeftPayload, channelId, incoming);
+  }
+
+  /**
+   * Method for handling additional join logic when a client connects to a channel
+   *
+   * @param incoming client
+   * @param request  request payload
+   * @param response current response payload
+   * @throws JsonProcessingException exception when JSON processing fails
+   */
+  private void handleUsersOnJoin(final Channel incoming, final Payload request, final Payload response) throws JsonProcessingException {
+    final String channelIdStr = (String) request.getBody().get(BODY_CHANNEL_ID);
+    final String jwt = request.getJwt();
+
+    if (jwt == null || channelIdStr == null) return;
+
+    final UUID channelId = UUID.fromString(channelIdStr);
+    final DecodedJWT decoded = Auth.decode(jwt);
+
+    final String username = decoded.getSubject();
+    final User user = UserTransactions.getUserByUsername(dbManager, username);
+
+    if (user == null) return;
+
+    // Currently connected clients
+    final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels()
+      .computeIfAbsent(channelId, x -> new ArrayBlockingQueue<>(100));
+
+    // Adding the new client to the connected clients
+    connectedClients.add(new ConnectedClient(user.getId(), incoming));
+
+    // TODO: Fix later
+    final List<String> users = connectedClients.stream()
+      .map(connectedClient -> ConvertUser.convertFromConnectedClient(modelMapper, connectedClient, dbManager))
+      .filter(Objects::nonNull)
+      .map(userDto -> {
+        try {
+          return userDto.toJson(objectMapper);
+        } catch (final JsonProcessingException e) {
+          return "";
+        }
+      })
+      .collect(Collectors.toList());
+
+    response.putBody("users", users);
+
+    // Notifying every connected client that another one has connected
+    final Payload userJoinedPayload = new Payload()
+      .setType(INFO_USER_JOINED_CHANNEL)
+      .setResponseType(TO_ALL_EXCEPT_SELF)
+      .putBody("user", ConvertUser.convertFromUser(modelMapper, user).toJson(objectMapper));
+
+    for (final ConnectedClient connectedClient : connectedClients)
+      if (!connectedClient.getChannel().equals(incoming))
+        send(connectedClient.getChannel(), userJoinedPayload);
+
+    // Clearing the jwt from the response (was only used for tracking the joined user)
+    request.setJwt(null);
+  }
+
   @Override
-  public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
-    // TODO: What to do with the caught exception?
+  public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
     logger.error("Exception has been caught", cause);
-//    ctx.close(); // TODO: Decide what to do when exception is caught. Maybe notify user of server fatal error (500)?
+
+    final Payload serverFvckedUp = new Payload()
+      .setType(SERVER_FVKD_UP)
+      .putBody("message", cause.getLocalizedMessage());
+    send(ctx.channel(), serverFvckedUp);
   }
 
   /**
@@ -252,8 +300,17 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         send(channel, payload);
   }
 
-  public void sendToServer(final Payload payload, final UUID serverId) {
+  public void sendAll(final Payload payload, final UUID channelId, final Channel ignore) {
+    final Queue<ConnectedClient> connectedClients = server.getChannelJoinedChannels().get(channelId);
+    if (connectedClients == null) return;
 
+    for (final ConnectedClient connectedClient : connectedClients) {
+      final Channel channel = connectedClient.getChannel();
+
+      if (channel.equals(ignore)) continue;
+
+      send(channel, payload);
+    }
   }
 
   /**

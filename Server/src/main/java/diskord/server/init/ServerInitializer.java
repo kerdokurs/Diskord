@@ -22,7 +22,7 @@ public class ServerInitializer extends ChannelInitializer<SocketChannel> {
   protected void initChannel(final SocketChannel socketChannel) {
     ChannelPipeline pipeline = socketChannel.pipeline();
 
-    pipeline.addLast("framer", new DelimiterBasedFrameDecoder(65536, Delimiters.lineDelimiter()));
+    pipeline.addLast("framer", new DelimiterBasedFrameDecoder((int) 1e9, Delimiters.lineDelimiter()));
     pipeline.addLast("encoder", new StringEncoder());
     pipeline.addLast("decoder", new StringDecoder());
 

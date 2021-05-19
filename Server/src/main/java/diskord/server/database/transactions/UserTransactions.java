@@ -42,6 +42,11 @@ public class UserTransactions {
     return dbManager.save(server);
   }
 
+  public static boolean addUserPrivilegedServer(final DatabaseManager dbManager, final User user, final Room room) {
+    final PrivilegedServer server = new PrivilegedServer(user, room);
+    return dbManager.save(server);
+  }
+
   public static boolean doesUserExist(final DatabaseManager dbManager, final String username) {
     return dbManager.runTransaction(em ->
       (Long) em.createQuery("SELECT COUNT(*) FROM User u WHERE u.username = :username").setParameter("username", username).getSingleResult() > 0

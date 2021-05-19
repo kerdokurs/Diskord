@@ -21,6 +21,14 @@ public class RoomTransactions {
     );
   }
 
+  public static boolean doesRoomExistByName(final DatabaseManager dbManager, final String name) {
+    return dbManager.runTransaction(em ->
+      (Long) em.createQuery("SELECT COUNT(*) FROM Room r WHERE r.name = :name")
+      .setParameter("name", name)
+      .getSingleResult() > 0
+    );
+  }
+
   public static Room getRoomByJoinId(final DatabaseManager dbManager, final String joinId) {
     return dbManager.runTransaction(em -> em.createQuery("FROM Room u WHERE u.joinId = :joinId", Room.class)
       .setParameter("joinId", joinId)

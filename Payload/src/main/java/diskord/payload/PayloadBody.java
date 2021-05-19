@@ -15,6 +15,8 @@ public class PayloadBody extends HashMap<String, Object> implements Serializable
   public static final transient String BODY_INVALID = "invalid request";
 
   public static final transient String SERVER_ID = "join_id";
+
+  public static final transient String BODY_CHANNEL_ID = "channel_id";
 }
 
 
