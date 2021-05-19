@@ -10,4 +10,6 @@ public enum ResponseType {
   TO_ONE,
   // Send payload to the sender, e.g when there is an error with something
   TO_SELF,
+
+  TO_CHANNEL_EXCEPT_SELF,
 }

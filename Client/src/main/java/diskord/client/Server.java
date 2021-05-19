@@ -17,12 +17,12 @@ public class Server {
     @Getter
     private final String joinID;
 
-    public Server(UUID id, String name, String description, String base64Icon) {
+    public Server(UUID id, String name, String description, String base64Icon, String joinID) {
         this.id = id;
         this.name = name;
         this.description = description;
         this.base64Icon = base64Icon;
-        this.joinID = "Join ID: " + id.toString().substring(0,7);
+        this.joinID = joinID;
     }
 
     /**

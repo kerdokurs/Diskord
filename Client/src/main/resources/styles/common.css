@@ -6,8 +6,9 @@
     -fx-border-width: 2px;
 }
 
-.list-cell{
+.list-cell ,.text .content{
     -fx-background-color: #36393f;
+    -fx-text-fill: #c8c8c8;
 }
 
 .button, .text-field, .text-area ,.text-area .content , .menu-item{

@@ -5,6 +5,7 @@ import diskord.client.ChatFile;
 import diskord.client.ChatFileType;
 
 import diskord.client.ServerConnection;
+import diskord.client.controllers.listview.ListViewServerRow;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
@@ -86,7 +87,7 @@ public class ControllerRegisterChannel implements Controller{
      * Method listens for Enter key to be pressed. After that it will create server
      * @param keyEvent Event parameter that states what kind of key was pressed.
      */
-    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) throws IOException {
         if (keyEvent.getCode() == KeyCode.ENTER) {
             fxEventButtonCreateChannel();
         }
@@ -96,7 +97,7 @@ public class ControllerRegisterChannel implements Controller{
      * JavaFX event in Register channel scene. Method is called when register button is clicked
      * Method registers channel
      */
-    public void fxEventButtonCreateChannel() {
+    public void fxEventButtonCreateChannel() throws IOException {
         if(!channelIconFile.exists()){
             fxLabelChannelResponse.setTextFill(Color.color(1, 0, 0));
             fxLabelChannelResponse.setText("Channel icon not found!");
@@ -111,27 +112,18 @@ public class ControllerRegisterChannel implements Controller{
             fxLabelChannelResponse.setText("Channel name is too large (max 50)");
             return;
         }
-        // Craft chatFile from channel icon
-        ChatFile chatFile = null;
-        try {
-            chatFile = new ChatFile(
-                    UUID.randomUUID(),
-                    channelIconFile.getName(),
-                    Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())),
-                    ChatFileType.IMAGE);
-        } catch (IOException e) {
-            fxLabelChannelResponse.setTextFill(Color.color(1, 0, 0));
-            fxLabelChannelResponse.setText("Channel icon not possible to load! Try another");
-            return;
-        }
-        // craft payload to server
 
-        Payload request = new Payload();
-        request.setJwt(parentController.currentUser.getUserToken());
-        request.setType(PayloadType.REGISTER_CHANNEL);
-        request.putBody("chatFile",chatFile);
-        request.putBody("name",fxTextFieldChannelName.getText());
-        serverConnection.writeWithResponse(request,this);
+        // craft payload to server
+        final ListViewServerRow selectedItem = parentController.fxListViewServers.getSelectionModel().getSelectedItem();
+        if(selectedItem != null){
+            Payload request = new Payload();
+            request.setJwt(parentController.currentUser.getUserToken());
+            request.setType(PayloadType.REGISTER_CHANNEL);
+            request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())));
+            request.putBody("name",fxTextFieldChannelName.getText());
+            request.putBody("server_id", selectedItem.getUuid());
+            serverConnection.writeWithResponse(request,this);
+        }
     }
 
     /**
@@ -151,8 +143,12 @@ public class ControllerRegisterChannel implements Controller{
             case REGISTER_CHANNEL_OK:
                 Platform.runLater(() -> fxLabelChannelResponse.setTextFill(Color.color(0, 1, 0)));
                 Platform.runLater(() -> fxLabelChannelResponse.setText("Channel created!"));
-                //TODO Update user channels
-                //parentController.setUserSuscribedServers();
+
+                Payload request = new Payload();
+                request.setType(PayloadType.INFO_CHANNELS);
+                request.putBody("server_id", parentController.fxListViewServers.getSelectionModel().getSelectedItem().getUuid());
+                request.setJwt(parentController.currentUser.getUserToken());
+                serverConnection.writeWithResponse(request, parentController);
                 break;
             case REGISTER_CHANNEL_ERROR:
                 Platform.runLater(() -> fxLabelChannelResponse.setTextFill(Color.color(1, 0, 0)));

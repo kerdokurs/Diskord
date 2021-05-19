@@ -10,10 +10,10 @@ public enum PayloadType {
   // Response
   // Key: "userUuid" value: (UUID) users uuid who sent message
   // Key: "message" value: (String) user sent message
-  // Optional key: "chatFile" value: (ChatFile) User sent file
+  // Optional key: "chat_file" value: (ChatFile) User sent file
   // Request
   // Key: "message" value: (String) user sent message
-  // Optional key: "chatFile" value: (ChatFile) User sent file
+  // Optional key: "chat_file" value: (ChatFile) User sent file
   MSG,
   // MSG body properties
   // nothing
@@ -83,7 +83,7 @@ public enum PayloadType {
 
   // Response from server
   // INFO_USER_JOINED_CHANNEL body properties
-  // Key: "user" value: (User) The user that joined the server
+  // Key: "user" value: (String) The user that joined the server
   INFO_USER_JOINED_CHANNEL,
   // Response from server
   // INFO_USER_LEFT_CHANNEL body properties
@@ -136,13 +136,16 @@ public enum PayloadType {
   REGISTER_SERVER_ERROR,
 
   // REGISTER_CHANNEL body properties
-  // key: "chatFile" value: (ChatFile) channel icon
+  // key: "icon" value: (String) base64Icon
   // key: "name" value: (String) channel name
+  // key: "server_id" value: (UUID) server uuid
   REGISTER_CHANNEL,
   // REGISTER_CHANNEL_OK body properties
   // Nothing
   REGISTER_CHANNEL_OK,
   // REGISTER_CHANNEL_ERROR body properties
   // key: "message" value: (String) error message
-  REGISTER_CHANNEL_ERROR
+  REGISTER_CHANNEL_ERROR,
+
+  SERVER_FVKD_ERROR,
 }
