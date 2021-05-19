@@ -28,8 +28,7 @@ import java.util.*;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
-import static diskord.payload.PayloadBody.BODY_INVALID;
-import static diskord.payload.PayloadBody.BODY_MESSAGE;
+import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.*;
 import static diskord.payload.ResponseType.TO_ALL_EXCEPT_SELF;
 import static diskord.payload.ResponseType.TO_SELF;
@@ -58,31 +57,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     registerHandler(JOIN_CHANNEL, new JoinChannelHandler(dbManager, this));
     registerHandler(LEAVE_CHANNEL, new LeaveChannelHandler(dbManager, this));
-
-//    final User user = UserTransactions.getUserByUsername(dbManager, "kerdo");
-//    System.out.println(user);
-//    final List<JoinedServer> userJoinedRooms = UserTransactions.getUserJoinedRooms(dbManager, user);
-//    for (final JoinedServer userJoinedRoom : userJoinedRooms) {
-//      System.out.printf("Deleted room %s%n", userJoinedRoom);
-//      dbManager.delete(userJoinedRoom);
-//    }
-//
-//    final List<Room> rooms = RoomTransactions.getRooms(dbManager);
-//    for (final Room room : rooms) {
-//      System.out.printf("Deleted room %s%n", room);
-//      dbManager.delete(room);
-//    }
   }
 
   @Override
-  public void handlerAdded(final ChannelHandlerContext ctx) throws Exception {
-    Channel incoming = ctx.channel();
+  public void handlerAdded(final ChannelHandlerContext ctx) {
+    final Channel incoming = ctx.channel();
 
     logger.info("incoming connection from {}", incoming);
-
-    // for (Channel channel : channels) {
-    //   channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
-    // }
 
     channels.add(incoming);
   }
@@ -94,14 +75,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   }
 
   @Override
-  public void handlerRemoved(final ChannelHandlerContext ctx) throws Exception {
+  public void handlerRemoved(final ChannelHandlerContext ctx) {
     Channel incoming = ctx.channel();
 
     logger.info("{} has disconnected", incoming);
-
-    //for (Channel channel : channels) {
-    //  channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
-    //}
 
     channels.remove(incoming);
   }
@@ -139,19 +116,32 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
       send(incoming, msgOkPayload);
     }
 
-    System.out.println(server.getChannelJoinedChannels());
+//    System.out.println(server.getChannelJoinedChannels());
 
     switch (response.getResponseType()) {
       case TO_ALL:
         sendAll(response);
         break;
       case TO_ALL_EXCEPT_SELF:
-        final String channelIdStr = (String) request.getBody().get("channel_id");
-        final UUID channelId = UUID.fromString(channelIdStr);
-        sendAll(response, channelId, incoming);
+        sendAll(response, incoming);
         break;
       case TO_CHANNEL_EXCEPT_SELF:
-        sendAll(response, incoming);
+        final UUID channelId = server.getChannelJoinedChannels()
+          .entrySet()
+          .stream()
+          .filter(joinedChannel ->
+            joinedChannel.getValue()
+              .stream()
+              .anyMatch(connectedClient -> connectedClient.getChannel().equals(incoming))
+          )
+          .map(Entry::getKey)
+          .findFirst()
+          .orElse(null);
+
+        if (channelId == null)
+          break;
+
+        sendAll(response, channelId, incoming);
         break;
       case TO_ONE:
         // Reply-to a user type of payload
@@ -171,13 +161,29 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @param request  request payload
    */
   private void handleUsersOnLeave(final Channel incoming, final Payload request) {
-    final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+    final UUID channelId = UUID.fromString((String) request.getBody().get(BODY_CHANNEL_ID));
 
     final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels()
       .computeIfAbsent(channelId, x -> new ArrayBlockingQueue<>(100));
 
+    final ConnectedClient client = joinedChannels
+      .stream()
+      .filter(connectedClient -> connectedClient.getChannel().equals(incoming))
+      .findFirst()
+      .orElse(null);
+
+    if (client == null)
+      return;
+
+    final Payload userLeftPayload = new Payload()
+      .setType(INFO_USER_LEFT_CHANNEL)
+      .setResponseType(TO_ALL_EXCEPT_SELF)
+      .putBody("user_id", client.getUserId().toString());
+
     // Removing the user from the channel when its there
     joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
+
+    sendAll(userLeftPayload, channelId, incoming);
   }
 
   /**
@@ -189,7 +195,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
    * @throws JsonProcessingException exception when JSON processing fails
    */
   private void handleUsersOnJoin(final Channel incoming, final Payload request, final Payload response) throws JsonProcessingException {
-    final String channelIdStr = (String) request.getBody().get("channel_id");
+    final String channelIdStr = (String) request.getBody().get(BODY_CHANNEL_ID);
     final String jwt = request.getJwt();
 
     if (jwt == null || channelIdStr == null) return;
@@ -239,10 +245,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   }
 
   @Override
-  public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) throws Exception {
-    // TODO: What to do with the caught exception?
+  public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
     logger.error("Exception has been caught", cause);
-//    ctx.close(); // TODO: Decide what to do when exception is caught. Maybe notify user of server fatal error (500)?
+
+    final Payload serverFvckedUp = new Payload()
+      .setType(SERVER_FVKD_UP)
+      .putBody("message", cause.getLocalizedMessage());
+    send(ctx.channel(), serverFvckedUp);
   }
 
   /**
@@ -297,10 +306,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
       send(channel, payload);
     }
-  }
-
-  public void sendToServer(final Payload payload, final UUID serverId) {
-
   }
 
   /**
