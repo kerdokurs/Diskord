@@ -1,11 +1,16 @@
 package diskord.server.init;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import diskord.payload.Payload;
 import diskord.payload.PayloadType;
+import diskord.server.ConnectedClient;
 import diskord.server.Server;
+import diskord.server.crypto.Auth;
 import diskord.server.database.DatabaseManager;
+import diskord.server.database.transactions.UserTransactions;
+import diskord.server.database.user.User;
 import diskord.server.handlers.*;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -33,8 +38,6 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private final ObjectMapper mapper = new ObjectMapper();
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
-
-  private final Map<UUID, Queue<Channel>> channelJoinedChannels = new HashMap<>();
 
   public ServerHandler(final Server server) {
     this.server = server;
@@ -117,27 +120,40 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK)) {
       final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+      final String jwt = request.getJwt();
 
-      // TODO: #computeIfAbsent
-      if (!channelJoinedChannels.containsKey(channelId))
-        channelJoinedChannels.put(channelId, new ArrayBlockingQueue<>(100));
+      if (jwt != null) {
+        final DecodedJWT decoded = Auth.decode(jwt);
+        final String username = decoded.getSubject();
+        final User user = UserTransactions.getUserByUsername(dbManager, username);
 
-      final Queue<Channel> channels = channelJoinedChannels.get(channelId);
-      channels.add(incoming);
+        if (user != null) {
+          // TODO: #computeIfAbsent
+          if (!server.getChannelJoinedChannels().containsKey(channelId))
+            server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
+
+          final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
+          joinedChannels.add(new ConnectedClient(user.getId(), incoming));
+        }
+
+        request.setJwt(null);
+      }
     }
 
     if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK)) {
       final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
 
       // TODO: #computeIfAbsent
-      if (!channelJoinedChannels.containsKey(channelId))
-        channelJoinedChannels.put(channelId, new ArrayBlockingQueue<>(100));
+      if (!server.getChannelJoinedChannels().containsKey(channelId))
+        server.getChannelJoinedChannels().put(channelId, new ArrayBlockingQueue<>(100));
 
-      final Queue<Channel> channels = channelJoinedChannels.get(channelId);
-      channels.remove(incoming);
+      final Queue<ConnectedClient> joinedChannels = server.getChannelJoinedChannels().get(channelId);
+      joinedChannels.removeIf(connectedClient -> connectedClient.getChannel().equals(incoming));
+
+      request.setJwt(null);
     }
 
-    System.out.println(channelJoinedChannels);
+    System.out.println(server.getChannelJoinedChannels());
 
     switch (response.getResponseType()) {
       case TO_ALL:

@@ -20,6 +20,7 @@ public class JoinChannelHandler extends Handler {
   public Payload handleRequest(final Payload request, final Channel channel) {
     return new Payload()
       .setResponseTo(request.getId())
+      .setJwt(request.getJwt())
       .setResponseType(TO_SELF)
       .setType(request.getBody().containsKey("channel_id") ? JOIN_CHANNEL_OK : JOIN_CHANNEL_ERROR)
       .putBody("users", List.of());
