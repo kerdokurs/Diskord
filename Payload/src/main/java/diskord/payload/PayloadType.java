@@ -81,6 +81,14 @@ public enum PayloadType {
   // Key: "message" value: (String) error message
   INFO_CHANNELS_ERROR,
 
+  // Response from server
+  // INFO_USER_JOINED_CHANNEL body properties
+  // Key: "user" value: (User) The user that joined the server
+  INFO_USER_JOINED_CHANNEL,
+  // Response from server
+  // INFO_USER_LEFT_CHANNEL body properties
+  // Key: "user_id" value: (UUID) The user ID that left the channel
+  INFO_USER_LEFT_CHANNEL,
 
   INVALID,
   AUTH_ERROR,
@@ -112,9 +120,7 @@ public enum PayloadType {
   // nothing
   REGISTER_OK,
   // REGISTER_ERROR body properties
-  // TODO Typo Message -> message
-
-  // Key: "Message" value: (String) error message
+  // Key: "message" value: (String) error message
   REGISTER_ERROR,
 
   // REGISTER_SERVER body properties

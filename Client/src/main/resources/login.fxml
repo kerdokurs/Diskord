@@ -22,8 +22,8 @@
             <Image url="@login.PNG" />
          </image>
       </ImageView>
-      <TextField fx:id="fxTextFieldUsername" layoutX="264.0" layoutY="111.0" prefHeight="25.0" prefWidth="190.0" promptText="Username" />
-      <TextField fx:id="fxTextFieldPassword" layoutX="264.0" layoutY="149.0" prefHeight="25.0" prefWidth="190.0" promptText="Password" />
+      <TextField fx:id="fxTextFieldUsername" layoutX="264.0" layoutY="111.0" onKeyPressed="#fxEventTextFieldOnKeyPressed" prefHeight="25.0" prefWidth="190.0" promptText="Username" />
+      <TextField fx:id="fxTextFieldPassword" layoutX="264.0" layoutY="149.0" onKeyPressed="#fxEventTextFieldOnKeyPressed" prefHeight="25.0" prefWidth="190.0" promptText="Password" />
       <Label fx:id="fxLabelLoginErrorMessage" layoutX="264.0" layoutY="181.0" prefHeight="17.0" prefWidth="190.0" textFill="RED" />
    </children>
 </Pane>

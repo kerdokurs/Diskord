@@ -5,7 +5,6 @@ import diskord.client.ChatFile;
 import diskord.client.ChatFileType;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
@@ -17,6 +16,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -82,10 +83,21 @@ public class ControllerRegisterServer implements Controller{
     }
 
     /**
+     * JavaFX event in Register channel scene. Method is called when key is pressed in fxTextField
+     * Method listens for Enter key to be pressed. After that it will create server
+     * @param keyEvent Event parameter that states what kind of key was pressed.
+     */
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            fxEventButtonCreateServer();
+        }
+    }
+
+    /**
      * JavaFX event in Register server scene. Method is called when register button is clicked
      * Method registers server
      */
-    public void fxEventButtonCreateServer() throws IOException {
+    public void fxEventButtonCreateServer(){
         if(!serverIconFile.exists()){
             fxLabelServerResponse.setTextFill(Color.color(1, 0, 0));
             fxLabelServerResponse.setText("Server icon not found!");
@@ -110,25 +122,27 @@ public class ControllerRegisterServer implements Controller{
             return;
         }
         // Craft chatFile from server icon
-        ChatFile chatFile = new ChatFile(
-                UUID.randomUUID(),
-                serverIconFile.getName(),
+        ChatFile chatFile = null;
+        try {
+            chatFile = new ChatFile(
+                    UUID.randomUUID(),
+                    serverIconFile.getName(),
 
-                Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())),
-                ChatFileType.IMAGE);
+                    Base64.getEncoder().encodeToString(Files.readAllBytes(serverIconFile.toPath())),
+                    ChatFileType.IMAGE);
+        } catch (IOException e) {
+            fxLabelServerResponse.setTextFill(Color.color(1, 0, 0));
+            fxLabelServerResponse.setText("Server icon not possible to load! Try another");
+            return;
+        }
         // craft payload to server
-
         Payload request = new Payload();
         request.setJwt(parentController.currentUser.getUserToken());
         request.setType(PayloadType.REGISTER_SERVER);
         request.putBody("icon",chatFile);
         request.putBody("name",fxTextFieldServerName.getText());
         request.putBody("description",fxTextBoxServerDescription.getText());
-
         serverConnection.writeWithResponse(request,this);
-
-        //TODO Remove test data
-        handleResponse(TestData.getServerRegistrationResponse());
     }
 
     /**
@@ -140,7 +154,7 @@ public class ControllerRegisterServer implements Controller{
      * @throws IOException
      */
     @Override
-    public void handleResponse(Payload response) throws IOException {
+    public void handleResponse(Payload response) {
         logger.info(response.toString());
         PayloadBody responseBody = response.getBody();
         // All FX interaction from different thread must be ran later
@@ -149,7 +163,7 @@ public class ControllerRegisterServer implements Controller{
                 Platform.runLater(() -> fxLabelServerResponse.setTextFill(Color.color(0, 1, 0)));
                 Platform.runLater(() -> fxLabelServerResponse.setText("Server created!"));
                 // Update user servers
-                parentController.getUserSuscribedServers();
+                parentController.getUserSubscribedServers();
                 break;
             case REGISTER_SERVER_ERROR:
                 Platform.runLater(() -> fxLabelServerResponse.setTextFill(Color.color(1, 0, 0)));

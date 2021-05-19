@@ -1,12 +1,9 @@
 package diskord.client.controllers;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
-
-import diskord.payload.ResponseType;
 
 import javafx.application.Platform;
 import javafx.fxml.FXML;
@@ -16,6 +13,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -54,9 +53,7 @@ public class ControllerRegister implements Controller{
     private File userIconFile;
 
     public void init(){
-
         // This controller does not need active listener from server connection
-
         fxLabelMessage.setAlignment(Pos.CENTER);
     }
 
@@ -65,25 +62,31 @@ public class ControllerRegister implements Controller{
      * is clicked. Method validates user input and then registers account. If account cant be
      * register by server side, it will notify user!
      */
-    public void fxEventButtonActionRegister() throws IOException {
-
+    public void fxEventButtonActionRegister(){
+        if(fxTextFieldUsername.getText().length() < 4){
+            fxLabelMessage.setTextFill(Color.color(1, 0, 0));
+            fxLabelMessage.setText("Username must be greater than 3!");
+            return;
+        }
         if(userIconFile == null || !userIconFile.exists()){
-
             fxLabelMessage.setTextFill(Color.color(1, 0, 0));
             fxLabelMessage.setText("User icon not found!");
             return;
         }
-
         if (passwordValid) {
             // Register client and get response code
-
             Payload request = new Payload();
             request.setType(PayloadType.REGISTER);
             request.putBody("username",fxTextFieldUsername.getText());
             request.putBody("password",fxTextFieldPassword.getText());
-            request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            try {
+                request.putBody("icon",Base64.getEncoder().encodeToString(Files.readAllBytes(userIconFile.toPath())));
+            } catch (IOException e) {
+                fxLabelMessage.setTextFill(Color.color(1, 0, 0));
+                fxLabelMessage.setText("User icon not usable! Choose another");
+                return;
+            }
             serverConnection.writeWithResponse(request,this);
-
         } else {
             fxLabelMessage.setText("Account settings are not valid!");
             fxLabelMessage.setTextFill(Color.rgb(200, 0, 0));
@@ -110,6 +113,18 @@ public class ControllerRegister implements Controller{
         }
         fxImageViewUserIcon.setImage(new Image(new FileInputStream(userIconFile.getAbsolutePath())));
     }
+
+    /**
+     * JavaFX event in register scene. Method is called when key is pressed in TextFields
+     * Method listens for Enter key to be pressed. After that it will register.
+     * @param keyEvent Event parameter that states what kind of key was pressed.
+     */
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            fxEventButtonActionRegister();
+        }
+    }
+
 
     /**
      * JavaFX event in Register Scene. Method is called when key is typed in

@@ -67,9 +67,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("incoming connection from {}", incoming);
 
-    for (Channel channel : channels) {
-      channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
-    }
+    // for (Channel channel : channels) {
+    //   channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has joined\n");
+    // }
 
     channels.add(incoming);
   }
@@ -86,9 +86,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     logger.info("{} has disconnected", incoming);
 
-    for (Channel channel : channels) {
-      channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
-    }
+    //for (Channel channel : channels) {
+    //  channel.writeAndFlush("[SERVER] " + incoming.remoteAddress() + " has left\n");
+    //}
 
     channels.remove(incoming);
   }

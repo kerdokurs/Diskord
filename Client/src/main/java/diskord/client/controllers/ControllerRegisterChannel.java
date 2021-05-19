@@ -5,7 +5,6 @@ import diskord.client.ChatFile;
 import diskord.client.ChatFileType;
 
 import diskord.client.ServerConnection;
-import diskord.client.TestData;
 import diskord.payload.Payload;
 import diskord.payload.PayloadBody;
 import diskord.payload.PayloadType;
@@ -17,6 +16,8 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -81,10 +82,21 @@ public class ControllerRegisterChannel implements Controller{
     }
 
     /**
+     * JavaFX event in Register channel scene. Method is called when key is pressed in fxTextField
+     * Method listens for Enter key to be pressed. After that it will create server
+     * @param keyEvent Event parameter that states what kind of key was pressed.
+     */
+    public void fxEventTextFieldOnKeyPressed(KeyEvent keyEvent) {
+        if (keyEvent.getCode() == KeyCode.ENTER) {
+            fxEventButtonCreateChannel();
+        }
+    }
+
+    /**
      * JavaFX event in Register channel scene. Method is called when register button is clicked
      * Method registers channel
      */
-    public void fxEventButtonCreateChannel() throws IOException {
+    public void fxEventButtonCreateChannel() {
         if(!channelIconFile.exists()){
             fxLabelChannelResponse.setTextFill(Color.color(1, 0, 0));
             fxLabelChannelResponse.setText("Channel icon not found!");
@@ -100,12 +112,18 @@ public class ControllerRegisterChannel implements Controller{
             return;
         }
         // Craft chatFile from channel icon
-        ChatFile chatFile = new ChatFile(
-                UUID.randomUUID(),
-                channelIconFile.getName(),
-
-                Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())),
-                ChatFileType.IMAGE);
+        ChatFile chatFile = null;
+        try {
+            chatFile = new ChatFile(
+                    UUID.randomUUID(),
+                    channelIconFile.getName(),
+                    Base64.getEncoder().encodeToString(Files.readAllBytes(channelIconFile.toPath())),
+                    ChatFileType.IMAGE);
+        } catch (IOException e) {
+            fxLabelChannelResponse.setTextFill(Color.color(1, 0, 0));
+            fxLabelChannelResponse.setText("Channel icon not possible to load! Try another");
+            return;
+        }
         // craft payload to server
 
         Payload request = new Payload();
@@ -113,11 +131,7 @@ public class ControllerRegisterChannel implements Controller{
         request.setType(PayloadType.REGISTER_CHANNEL);
         request.putBody("chatFile",chatFile);
         request.putBody("name",fxTextFieldChannelName.getText());
-
         serverConnection.writeWithResponse(request,this);
-
-        //TODO Remove test data
-        handleResponse(TestData.getChannelRegistrationResponse());
     }
 
     /**
