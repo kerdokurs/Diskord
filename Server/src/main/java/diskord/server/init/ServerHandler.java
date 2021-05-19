@@ -17,9 +17,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.security.InvalidParameterException;
-import java.util.EnumMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.ArrayBlockingQueue;
 
 import static diskord.payload.PayloadBody.BODY_INVALID;
 import static diskord.payload.PayloadBody.BODY_MESSAGE;
@@ -35,6 +34,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
+  private final Map<UUID, Queue<Channel>> channelJoinedChannels = new HashMap<>();
+
   public ServerHandler(final Server server) {
     this.server = server;
     dbManager = server.getDbManager();
@@ -46,6 +47,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     registerHandler(JOIN_SERVER, new JoinServerHandler(dbManager, this));
     registerHandler(INFO_USER_SERVERS, new UserInfoServersHandler(dbManager, this));
     registerHandler(INFO_CHANNELS, new InfoChannelsHandler(dbManager, this));
+
+    registerHandler(JOIN_CHANNEL, new JoinChannelHandler(dbManager, this));
+    registerHandler(LEAVE_CHANNEL, new LeaveChannelHandler(dbManager, this));
 
 //    final User user = UserTransactions.getUserByUsername(dbManager, "kerdo");
 //    System.out.println(user);
@@ -110,6 +114,30 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
     } else {
       response = unhandledRequest(request);
     }
+
+    if (request.getType().equals(JOIN_CHANNEL) && response.getType().equals(JOIN_CHANNEL_OK)) {
+      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+
+      // TODO: #computeIfAbsent
+      if (!channelJoinedChannels.containsKey(channelId))
+        channelJoinedChannels.put(channelId, new ArrayBlockingQueue<>(100));
+
+      final Queue<Channel> channels = channelJoinedChannels.get(channelId);
+      channels.add(incoming);
+    }
+
+    if (request.getType().equals(LEAVE_CHANNEL) && response.getType().equals(LEAVE_CHANNEL_OK)) {
+      final UUID channelId = UUID.fromString((String) request.getBody().get("channel_id"));
+
+      // TODO: #computeIfAbsent
+      if (!channelJoinedChannels.containsKey(channelId))
+        channelJoinedChannels.put(channelId, new ArrayBlockingQueue<>(100));
+
+      final Queue<Channel> channels = channelJoinedChannels.get(channelId);
+      channels.remove(incoming);
+    }
+
+    System.out.println(channelJoinedChannels);
 
     switch (response.getResponseType()) {
       case TO_ALL:
