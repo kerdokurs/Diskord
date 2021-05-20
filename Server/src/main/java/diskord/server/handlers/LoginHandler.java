@@ -12,7 +12,6 @@ import diskord.server.utils.CredentialValidator;
 import io.netty.channel.Channel;
 
 import javax.persistence.NoResultException;
-import java.util.Map;
 
 import static diskord.payload.PayloadBody.*;
 import static diskord.payload.PayloadType.LOGIN_ERROR;

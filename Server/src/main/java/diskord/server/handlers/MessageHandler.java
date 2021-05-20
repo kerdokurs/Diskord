@@ -47,6 +47,8 @@ public class MessageHandler extends Handler {
 
       final UUID messageId = UUID.randomUUID();
 
+      if (file != null)
+        response.putBody("chat_file", file);
 
       return response
         .setType(MSG)
@@ -54,8 +56,7 @@ public class MessageHandler extends Handler {
         .putBody("id", messageId.toString())
         .putBody("message", message)
         .putBody("user_id", user.getId().toString())
-        .putBody("username", username)
-        .putBody("chat_file", file);
+        .putBody("username", username);
     } catch (final JWTVerificationException e) {
       return response
         .setResponseType(TO_SELF)

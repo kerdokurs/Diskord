@@ -20,6 +20,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.group.ChannelGroup;
 import io.netty.channel.group.DefaultChannelGroup;
+import io.netty.handler.timeout.ReadTimeoutException;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -42,6 +43,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   private final Logger logger = LogManager.getLogger();
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final ModelMapper modelMapper = new ModelMapper();
+
+  private final Set<PayloadType> ignorePayloadPrints = Set.of(MSG, LOGIN, REGISTER, REGISTER_CHANNEL, REGISTER_SERVER);
 
   private final Map<PayloadType, Handler> handlers = new EnumMap<>(PayloadType.class);
 
@@ -92,9 +95,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
   protected void channelRead0(final ChannelHandlerContext ctx, final String s) throws Exception {
     Channel incoming = ctx.channel();
 
-    logger.info("{}: {}", incoming, s);
-
     final Payload request = Payload.fromJson(objectMapper, s);
+
+    if (!ignorePayloadPrints.contains(request.getType()))
+      logger.info("{}: {}", incoming, s);
+
     final Payload response;
 
     final Handler handler = handlers.get(request.getType());
@@ -251,6 +256,35 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
   @Override
   public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
+    if (cause == null) return;
+
+    final Channel channel = ctx.channel();
+
+    if (cause instanceof ReadTimeoutException) {
+      UUID channelId = null;
+      ConnectedClient connectedClient = null;
+
+      for (final Entry<UUID, Queue<ConnectedClient>> connectedClientsMap : server.getChannelJoinedChannels().entrySet()) {
+        connectedClient = connectedClientsMap.getValue().stream().filter(cc -> cc.getChannel().equals(channel)).findFirst().orElse(null);
+
+        if (connectedClient != null) {
+          channelId = connectedClientsMap.getKey();
+          break;
+        }
+      }
+
+      if (connectedClient == null || channelId == null) return;
+
+      final Payload userLeftPayload = new Payload()
+        .setType(INFO_USER_LEFT_CHANNEL)
+        .setResponseType(TO_ALL_EXCEPT_SELF)
+        .putBody("user_id", connectedClient.getUserId());
+
+      sendAll(userLeftPayload, channelId, channel);
+
+      return;
+    }
+
     logger.error("Exception has been caught", cause);
 
     final Payload serverFvckedUp = new Payload()
