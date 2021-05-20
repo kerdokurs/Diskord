@@ -5,13 +5,33 @@
     -fx-border-color: #565656;
     -fx-border-width: 2px;
 }
-
+/* Listview */
 .list-cell ,.text .content{
     -fx-background-color: #36393f;
     -fx-text-fill: #c8c8c8;
 }
+.list-cell:selected{
+    -fx-background-color: #36393f;
+}
 
-.button, .text-field, .text-area ,.text-area .content , .menu-item{
+/* Context menu*/
+.menu-item .label{
+    -fx-background-color: #565656;
+    -fx-text-fill: #ffffff;
+}
+.context-menu {
+    -fx-background-color: #565656;
+    -fx-text-fill: white;
+}
+.menu-item:focused {
+    -fx-background-color: #36393f;
+}
+
+.menu-item:focused .label {
+    -fx-background-color: #36393f;
+}
+
+.button, .text-field, .text-area ,.text-area .content {
     -fx-background-color: #565656;
     -fx-text-fill: #ffffff;
     /* radius */

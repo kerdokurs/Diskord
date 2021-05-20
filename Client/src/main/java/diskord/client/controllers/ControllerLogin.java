@@ -44,9 +44,6 @@ public class ControllerLogin implements Controller {
 
     @SneakyThrows
     public void init() {
-        // This controller does not need any passive listeners in
-
-
         fxLabelLoginErrorMessage.setAlignment(Pos.CENTER);
         // Check if Diskord folder is created and write login properties to Appdata/diskord
         File diskordDir = new File(System.getenv("APPDATA"),"Diskord");
@@ -206,7 +203,7 @@ public class ControllerLogin implements Controller {
                     // Open main window
                     FXMLLoader mainLoader = new FXMLLoader(getClass().getClassLoader().getResource("main.fxml"));
                     Parent mainRoot = null;
-                    //TODO Why do i have to try catch when method signature contains IOException ?!!
+
                     try {
                         mainRoot = (Parent)mainLoader.load();
                     } catch (IOException e) {
@@ -255,8 +252,10 @@ public class ControllerLogin implements Controller {
      */
     @Override
     public Set<PayloadType> getListenTypes() {
-        return Stream.of(PayloadType.LOGIN_OK,PayloadType.LOGIN_ERROR)
-                .collect(Collectors.toSet());
+        return Set.of(
+                PayloadType.LOGIN_OK,
+                PayloadType.LOGIN_ERROR,
+                PayloadType.BONK);
     }
 
     /**
