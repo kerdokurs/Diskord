@@ -25,6 +25,7 @@ import javafx.scene.control.*;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -41,6 +42,9 @@ import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 
 public class ControllerMain implements Controller {
@@ -121,8 +125,8 @@ public class ControllerMain implements Controller {
         fxListViewChannel.setFocusTraversable(false);
         fxListViewUsers.setFocusTraversable(false);
         // Set Listview event handlers
-        fxListViewServers.setOnMouseClicked(event -> fxEventListViewServerOnMouseClicked());
-        fxListViewChannel.setOnMouseClicked(event -> fxEventListViewChannelOnMouseClicked());
+        fxListViewServers.setOnMouseClicked(this::fxEventListViewServerOnMouseClicked);
+        fxListViewChannel.setOnMouseClicked(this::fxEventListViewChannelOnMouseClicked);
         // Set fxTextAreaChatBox max character limit
         fxTextAreaChatBox.setTextFormatter(new TextFormatter<>(change ->
                 change.getControlNewText().length() <= 100 ? change : null));
@@ -133,46 +137,27 @@ public class ControllerMain implements Controller {
         ContextMenu serverContextMenu = new ContextMenu();
         MenuItem serverMenuItem1 = new MenuItem("Join");
         MenuItem serverMenuItem2 = new MenuItem("Create");
-        MenuItem serverMenuItem3 = new MenuItem("Delete");
-        // Create  bind to disable property so if user is not authenticated to use delete command, it will be disabled
-        serverMenuItem3.disableProperty().bind(
-                Bindings.createBooleanBinding(() ->
-                                fxListViewServers.getSelectionModel().getSelectedItem() == null ||
-                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().getUuid()),
-                        fxListViewServers.getItems(),
-                        currentUser.getPrivilegedServers()));
 
         // Set event handlers
         serverMenuItem1.setOnAction(event -> fxEventListViewServersContextMenuJoinOnAction());
         serverMenuItem2.setOnAction(event -> fxEventListViewServersContextMenuCreateOnAction());
-        serverMenuItem3.setOnAction(event -> fxEventListViewServersContextMenuDeleteOnAction());
         // Add context menu to listview
         serverContextMenu.getItems().add(serverMenuItem1);
         serverContextMenu.getItems().add(serverMenuItem2);
-        serverContextMenu.getItems().add(serverMenuItem3);
         fxListViewServers.setContextMenu(serverContextMenu);
         // Create contextmenu for channels
         ContextMenu channelContextMenu = new ContextMenu();
         MenuItem channelMenuItem1 = new MenuItem("Create");
-        MenuItem channelMenuItem2 = new MenuItem("Delete");
         channelMenuItem1.disableProperty().bind(
                 Bindings.createBooleanBinding(() -> fxListViewServers.getSelectionModel().getSelectedItem() == null, fxListViewServers.getItems())
         );
-        // Create  bind to disable property so if user is not authenticated to use delete command, it will be disabled
-        channelMenuItem2.disableProperty().bind(
-                Bindings.createBooleanBinding(() ->
-                                fxListViewServers.getSelectionModel().getSelectedItem() == null ||
-                                        currentUser.getPrivilegedServers().contains(fxListViewServers.getSelectionModel().getSelectedItem().getUuid()),
-                        fxListViewServers.getItems(),
-                        currentUser.getPrivilegedServers()));
+
         // Disable channel contextmenu. If server is selected, then enable
 
         // set event handlers
         channelMenuItem1.setOnAction(event -> fxEventListViewChannelsContextMenuCreateOnAction());
-        channelMenuItem2.setOnAction(event -> fxEventListViewChannelsContextMenuDeleteOnAction());
         // Add context menu to listview
         channelContextMenu.getItems().add(channelMenuItem1);
-        channelContextMenu.getItems().add(channelMenuItem2);
         fxListViewChannel.setContextMenu(channelContextMenu);
         // Disable channel and user listview, Chat, Send chat button, chat text area
         fxListViewChannel.setDisable(true);
@@ -340,7 +325,7 @@ public class ControllerMain implements Controller {
                 } else {
                     user = new User("Unkown user", null, Utils.generateImage(40, 40, 1, 1, 1, 1));
                 }
-                if (responseBody.containsKey("chat_file")) {
+                if (responseBody.containsKey("chat_file") && responseBody.get("chat_file") != null) {
                     String chatFileString = (String) responseBody.get("chat_file");
                     ChatFileDTO chatFileDTO = ChatFileDTO.fromJson(objectMapper, chatFileString);
                     ChatFile chatFile = new ChatFile(
@@ -436,6 +421,7 @@ public class ControllerMain implements Controller {
     public Set<PayloadType> getListenTypes() {
         return Set.of(
                 PayloadType.MSG,
+                PayloadType.BONK,
                 PayloadType.INFO_USER_JOINED_CHANNEL,
                 PayloadType.INFO_USER_LEFT_CHANNEL
         );
@@ -559,14 +545,16 @@ public class ControllerMain implements Controller {
      * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
      * Method changes fxListViewChannels to clicked server channels
      */
-    public void fxEventListViewServerOnMouseClicked() {
-        ListViewServerRow clickedServer = fxListViewServers.getSelectionModel().getSelectedItem();
-        if (clickedServer != null) {
-            Payload request = new Payload();
-            request.setJwt(currentUser.getUserToken());
-            request.setType(PayloadType.INFO_CHANNELS);
-            request.putBody("server_id", clickedServer.getUuid());
-            serverConnection.writeWithResponse(request, this);
+    public void fxEventListViewServerOnMouseClicked(MouseEvent mouseEvent) {
+        if(mouseEvent.getButton() == MouseButton.PRIMARY) {
+            ListViewServerRow clickedServer = fxListViewServers.getSelectionModel().getSelectedItem();
+            if (clickedServer != null) {
+                Payload request = new Payload();
+                request.setJwt(currentUser.getUserToken());
+                request.setType(PayloadType.INFO_CHANNELS);
+                request.putBody("server_id", clickedServer.getUuid());
+                serverConnection.writeWithResponse(request, this);
+            }
         }
     }
 
@@ -574,26 +562,28 @@ public class ControllerMain implements Controller {
      * JavaFX event in Main scene. Method is called when fxListViewServers is clicked on
      * Method changes fxListViewChannels to clicked server channels
      */
-    public void fxEventListViewChannelOnMouseClicked() {
-        ListViewChannelRow clickedChannel = fxListViewChannel.getSelectionModel().getSelectedItem();
-        if (clickedChannel != null) {
-            if (currentChatUuid != null) {
+    public void fxEventListViewChannelOnMouseClicked(MouseEvent mouseEvent) {
+        if(mouseEvent.getButton() == MouseButton.PRIMARY) {
+            ListViewChannelRow clickedChannel = fxListViewChannel.getSelectionModel().getSelectedItem();
+            if (clickedChannel != null) {
+                if (currentChatUuid != null) {
+                    Payload request = new Payload();
+                    request.setJwt(currentUser.getUserToken());
+                    request.setType(PayloadType.LEAVE_CHANNEL);
+                    request.putBody("channel_id", currentChatUuid);
+                    serverConnection.writeWithResponse(request, this);
+
+                }
+                if (currentChatUuid == clickedChannel.getUuid()) {
+                    return;
+                }
+                currentChatUuid = clickedChannel.getUuid();
                 Payload request = new Payload();
                 request.setJwt(currentUser.getUserToken());
-                request.setType(PayloadType.LEAVE_CHANNEL);
-                request.putBody("channel_id", currentChatUuid);
+                request.setType(PayloadType.JOIN_CHANNEL);
+                request.putBody("channel_id", clickedChannel.getUuid());
                 serverConnection.writeWithResponse(request, this);
-
             }
-            if(currentChatUuid == clickedChannel.getUuid()){
-                return;
-            }
-            currentChatUuid = clickedChannel.getUuid();
-            Payload request = new Payload();
-            request.setJwt(currentUser.getUserToken());
-            request.setType(PayloadType.JOIN_CHANNEL);
-            request.putBody("channel_id", clickedChannel.getUuid());
-            serverConnection.writeWithResponse(request, this);
         }
     }
 
@@ -803,17 +793,5 @@ public class ControllerMain implements Controller {
             logger.info("ListViewChannelsContextMenuDeleteOnAction" + selectedRow.toString());
         }
     }
-
-    ////////////////////////////////////////////////////////////////////////////////// List view custom cell factory
-
-
-
-
-
-
-
-
-
-
 
 }

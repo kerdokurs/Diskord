@@ -62,7 +62,7 @@ public class ServerConnection implements Runnable {
     public ServerConnection(final InetSocketAddress address, Stage mainStage) {
         this.address = address;
         this.mainStage = mainStage;
-        this.pool = Executors.newFixedThreadPool(1);
+        this.pool = Executors.newFixedThreadPool(2);
     }
 
     @Override
@@ -145,6 +145,20 @@ public class ServerConnection implements Runnable {
                 // Do nothing because when the task is interrupted, it means serverConnections is being killed
             }
         };
+        Runnable pingTask = () -> {
+            try {
+                while (true){
+                    TimeUnit.MILLISECONDS.sleep(5000);
+                    Payload request = new Payload();
+                    request.setType(PayloadType.BINK);
+                    write(request);
+                }
+            } catch (InterruptedException e) {
+                logger.error("Runnable task interrupt exception: " + e);
+                throw new RuntimeException(e);
+            }
+        };
+        pool.execute(pingTask);
         pool.execute(runnableTask);
     }
 
@@ -220,7 +234,7 @@ public class ServerConnection implements Runnable {
                 logger.error("Can't send message to inactive connection");
                 killAllAndRestart();
             }
-        }catch (JsonProcessingException e){
+        }catch (Exception e){
             logger.error("Serverconnection.write: " + e);
             killAllAndRestart();
         }
